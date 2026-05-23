@@ -14,8 +14,31 @@ import plotly.graph_objects as go
 
 @st.cache_resource
 def load_models():
-    import pathlib
-    BASE_DIR = pathlib.Path("/mount/src/safeher-colombia")  
+    import pathlib, os
+
+    # Buscar automáticamente sin depender del nombre del repo
+    candidates = [
+        pathlib.Path(__file__).parent,          # misma carpeta que app.py
+        pathlib.Path(os.getcwd()),               # directorio de trabajo
+        pathlib.Path("/mount/src"),              # buscar dentro de /mount/src
+    ]
+
+    # Si estamos en /mount/src, buscar el subdirectorio que tenga los pkl
+    mount = pathlib.Path("/mount/src")
+    if mount.exists():
+        for sub in mount.iterdir():
+            if sub.is_dir() and (sub / "xgb_zona.pkl").exists():
+                candidates.insert(0, sub)
+
+    BASE_DIR = None
+    for c in candidates:
+        if (c / "xgb_zona.pkl").exists():
+            BASE_DIR = c
+            break
+
+    if BASE_DIR is None:
+        BASE_DIR = pathlib.Path(__file__).parent  # último fallback
+
     models = {}
     files = {
         "xgb_zona":           "xgb_zona.pkl",
@@ -35,15 +58,8 @@ def load_models():
                 models[key] = pickle.load(f)
         except Exception as e:
             models[key] = None
-    return models
-# ─── PAGE CONFIG ──────────────────────────────────────────────────────────────
 
-st.set_page_config(
-    page_title="SafeHer Colombia · IA Protección",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+    return models
 
 # ─── GLOBAL CSS ───────────────────────────────────────────────────────────────
 
