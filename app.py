@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 @st.cache_resource
 def load_models():
     import pathlib
-    BASE_DIR = pathlib.Path(__file__).parent.resolve()
+    BASE_DIR = pathlib.Path("/mount/src/safeher-colombia")
     models = {}
     files = {
         "xgb_zona":           "xgb_zona.pkl",
@@ -36,15 +36,6 @@ def load_models():
         except Exception as e:
             models[key] = None
     return models
-
-MODELS = load_models()
-MODELS_OK = any(v is not None for v in MODELS.values())
-
-# DIAGNÓSTICO TEMPORAL
-import pathlib
-BASE_DIR = pathlib.Path(__file__).parent.resolve()
-st.write("📁 Directorio:", str(BASE_DIR))
-st.write("📄 PKL encontrados:", [f.name for f in BASE_DIR.iterdir() if f.suffix == ".pkl"])
 # ─── PAGE CONFIG ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
