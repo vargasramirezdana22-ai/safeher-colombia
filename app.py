@@ -15,7 +15,7 @@ import plotly.graph_objects as go
 @st.cache_resource
 def load_models():
     import pathlib
-    BASE_DIR = pathlib.Path("/mount/src/safeher-colombia")  # ✅ CORRECTO
+    BASE_DIR = pathlib.Path("/safeher-colombia")  
     models = {}
     files = {
         "xgb_zona":           "xgb_zona.pkl",
