@@ -15,7 +15,9 @@ import plotly.graph_objects as go
 @st.cache_resource
 def load_models():
     import pathlib
-    BASE_DIR = pathlib.Path("/safeher-colombia")
+    # Use the directory of this script so model files are loaded relative
+    # to the project (works locally and when deployed).
+    BASE_DIR = pathlib.Path(__file__).resolve().parent
     models = {}
     files = {
         "xgb_zona":           "xgb_zona.pkl",
