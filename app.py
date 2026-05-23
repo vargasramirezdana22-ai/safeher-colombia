@@ -3,6 +3,7 @@ import random
 import math
 import os
 import pickle
+import joblib
 import hashlib
 import json
 import numpy as np
@@ -14,7 +15,10 @@ import plotly.graph_objects as go
 
 @st.cache_resource
 def load_models():
+    import os
     models = {}
+    # Buscar los PKL en el mismo directorio que este script
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     files = {
         "xgb_zona":           "xgb_zona.pkl",
         "lgbm_zona":          "lgbm_zona.pkl",
@@ -27,11 +31,13 @@ def load_models():
         "scaler_gravedad":    "scaler_gravedad.pkl",
     }
     for key, fname in files.items():
-        try:
-            with open(fname, "rb") as f:
-                models[key] = pickle.load(f)
-        except Exception:
-            models[key] = None
+        # Intentar en el directorio del script y en el directorio de trabajo
+        for path in [os.path.join(base_dir, fname), fname]:
+            try:
+                models[key] = joblib.load(path)
+                break
+            except Exception:
+                models[key] = None
     return models
 
 MODELS = load_models()
@@ -532,19 +538,53 @@ def calc_prediction(dep, mun, delito, sexo, etario, año):
     gravedad = gravedades[grav_idx]
     victimas = round(adjusted * 18 + random.random() * 10)
     used_pkl = False
+
+    # Mapeos: valores del UI → valores que esperan los modelos
+    DEP_MAP = {
+        "BOGOTÁ D.C.": "BOGOTÁ, D. C.",
+        "BOYACÁ": "BOYACA",
+        "SAN ANDRÉS": "ARCHIPIÉLAGO DE SAN ANDRÉS, PROVIDENCIA Y SANTA CATALINA",
+    }
+    DELITO_MAP = {
+        "HOMICIDIO": "HOMICIDIO DOLOSO",
+        "VIOLENCIA SEXUAL": "DELITOS SEXUALES",
+        "AMENAZAS": "AMENAZAS",
+        "VIOLENCIA INTRAFAMILIAR": "VIOLENCIA INTRAFAMILIAR",
+        "LESIONES PERSONALES": "LESIONES PERSONALES",
+        "HURTO": "LESIONES PERSONALES",  # fallback más cercano
+    }
+    ETARIO_MAP = {
+        "DE 0 A 17 AÑOS": "DE 14 A 17 AÑOS",
+        "DE 18 A 26 AÑOS": "DE 18 A 26 AÑOS",
+        "DE 27 A 59 AÑOS": "DE 27 A 59 AÑOS",
+        "DE 60 Y MÁS": "MAYOR DE 60 AÑOS",
+    }
+
+    dep_model = DEP_MAP.get(dep, dep)
+    delito_model = DELITO_MAP.get(delito, delito)
+    etario_model = ETARIO_MAP.get(etario, etario)
+
     try:
         if MODELS.get("xgb_zona") and MODELS.get("encoders_zona") and MODELS.get("le_zona"):
             enc = MODELS["encoders_zona"]
+            # Columnas en el orden exacto que espera xgb_zona
+            zona_feature_cols = list(MODELS["xgb_zona"].feature_names_in_)
             row = pd.DataFrame([{
-                "DEPARTAMENTO": dep, "MUNICIPIO": mun, "DELITO": delito,
-                "SEXO": sexo, "GRUPO_ETARIO": etario, "AÑO": año,
+                "DEPARTAMENTO_HECHO": dep_model,
+                "MUNICIPIO_HECHO": mun,
+                "AÑO_HECHOS": año,
+                "GRUPO_DELITO": delito_model,
+                "SEXO": sexo,
+                "GRUPO_ETARIO": etario_model,
             }])
-            for col in ["DEPARTAMENTO","MUNICIPIO","DELITO","SEXO","GRUPO_ETARIO"]:
-                if col in enc and col in row.columns:
+            for col in ["DEPARTAMENTO_HECHO", "MUNICIPIO_HECHO", "GRUPO_DELITO", "SEXO", "GRUPO_ETARIO"]:
+                if col in enc:
                     try:
                         row[col] = enc[col].transform(row[col].astype(str))
                     except Exception:
+                        # Valor desconocido: usar índice 0 como fallback
                         row[col] = 0
+            row = row[zona_feature_cols]
             zona_pred = MODELS["xgb_zona"].predict(row)[0]
             try:
                 zona = MODELS["le_zona"].inverse_transform([zona_pred])[0]
@@ -553,17 +593,20 @@ def calc_prediction(dep, mun, delito, sexo, etario, año):
             used_pkl = True
     except Exception:
         pass
+
     try:
-        if MODELS.get("xgb_gravedad") and MODELS.get("le_gravedad"):
+        if MODELS.get("xgb_gravedad") and MODELS.get("le_gravedad") and MODELS.get("preprocessor_grav"):
+            grav_feature_cols = list(MODELS["preprocessor_grav"].feature_names_in_)
             row2 = pd.DataFrame([{
-                "DEPARTAMENTO": dep, "MUNICIPIO": mun, "DELITO": delito,
-                "SEXO": sexo, "GRUPO_ETARIO": etario, "AÑO": año,
-            }])
-            if MODELS.get("preprocessor_grav"):
-                row2 = MODELS["preprocessor_grav"].transform(row2)
-            elif MODELS.get("scaler_gravedad"):
-                row2 = MODELS["scaler_gravedad"].transform(row2)
-            grav_pred = MODELS["xgb_gravedad"].predict(row2)[0]
+                "MUNICIPIO_HECHO": mun,
+                "DEPARTAMENTO_HECHO": dep_model,
+                "GRUPO_DELITO": delito_model,
+                "SEXO": sexo,
+                "GRUPO_ETARIO": etario_model,
+                "AÑO_HECHOS": año,
+            }])[grav_feature_cols]
+            row2_t = MODELS["preprocessor_grav"].transform(row2)
+            grav_pred = MODELS["xgb_gravedad"].predict(row2_t)[0]
             try:
                 gravedad = MODELS["le_gravedad"].inverse_transform([grav_pred])[0]
             except Exception:
