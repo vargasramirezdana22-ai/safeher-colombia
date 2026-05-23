@@ -16,14 +16,7 @@ import plotly.graph_objects as go
 def load_models():
     import pathlib, os
 
-    # Buscar automáticamente sin depender del nombre del repo
-    candidates = [
-        pathlib.Path(__file__).parent,          # misma carpeta que app.py
-        pathlib.Path(os.getcwd()),               # directorio de trabajo
-        pathlib.Path("/mount/src"),              # buscar dentro de /mount/src
-    ]
-
-    # Si estamos en /mount/src, buscar el subdirectorio que tenga los pkl
+    candidates = [pathlib.Path(__file__).parent, pathlib.Path(os.getcwd())]
     mount = pathlib.Path("/mount/src")
     if mount.exists():
         for sub in mount.iterdir():
@@ -37,9 +30,10 @@ def load_models():
             break
 
     if BASE_DIR is None:
-        BASE_DIR = pathlib.Path(__file__).parent  # último fallback
+        BASE_DIR = pathlib.Path(__file__).parent
 
     models = {}
+    load_errors = {}   # ← guardar errores reales
     files = {
         "xgb_zona":           "xgb_zona.pkl",
         "lgbm_zona":          "lgbm_zona.pkl",
@@ -56,9 +50,14 @@ def load_models():
         try:
             with open(fpath, "rb") as f:
                 models[key] = pickle.load(f)
+            load_errors[key] = f"✅ OK — {fpath}"
         except Exception as e:
             models[key] = None
+            load_errors[key] = f"❌ {fpath} → {type(e).__name__}: {e}"
 
+    import streamlit as st
+    st.session_state["_load_errors"] = load_errors
+    st.session_state["_base_dir"] = str(BASE_DIR)
     return models
 
 # ─── GLOBAL CSS ───────────────────────────────────────────────────────────────
@@ -1022,6 +1021,16 @@ elif "📊" in page:
         etario = st.selectbox("🎂 Grupo Etario", ["DE 0 A 17 AÑOS","DE 18 A 26 AÑOS","DE 27 A 59 AÑOS","DE 60 Y MÁS"], index=2)
 
     predict_btn = st.button("🔮 Ejecutar Predicción ML", type="primary", key="predict_btn")
+
+# DEBUG temporal — borrar después
+if st.session_state.get("_load_errors"):
+    with st.expander("🔧 Errores reales de carga PKL"):
+        st.write("BASE_DIR:", st.session_state.get("_base_dir"))
+        for k, v in st.session_state["_load_errors"].items():
+            st.write(f"{k}: {v}")
+
+if predict_btn or st.session_state.get('pred_result'):
+    
 
     if predict_btn or st.session_state.get('pred_result'):
         if predict_btn:
