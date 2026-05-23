@@ -15,9 +15,7 @@ import plotly.graph_objects as go
 @st.cache_resource
 def load_models():
     import pathlib
-    # Use the directory of this script so model files are loaded relative
-    # to the project (works locally and when deployed).
-    BASE_DIR = pathlib.Path(__file__).resolve().parent
+    BASE_DIR = pathlib.Path("/mount/src/safeher-colombia")  # ✅ CORRECTO
     models = {}
     files = {
         "xgb_zona":           "xgb_zona.pkl",
@@ -59,7 +57,7 @@ st.markdown("""
     s.textContent='section[data-testid="stSidebar"],section[data-testid="stSidebar"]>div:first-child{background:#FDFBFF!important}'
     +'section[data-testid="stSidebar"]{border-right:1.5px solid #EDE9FE!important;}'
     +'section[data-testid="stSidebar"] [data-baseweb="radio"]>div:first-child{display:none!important}'
-    +'section[data-testid="stSidebar"] label[data-baseweb="radio"]{'
+    +'section[data-testid="stSidebara"] label[data-baseweb="radio"]{'
     +'padding:9px 14px!important;border-radius:12px!important;font-size:13px!important;'
     +'font-weight:600!important;color:#6D28D9!important;border:1.5px solid transparent!important;'
     +'margin-bottom:2px!important;cursor:pointer!important;transition:background 0.15s!important;}'
@@ -537,11 +535,64 @@ def calc_prediction(dep, mun, delito, sexo, etario, año):
     victimas   = round(adjusted * 18 + random.random() * 10)
 
     used_pkl   = False
-    pkl_errors = []   # lista de mensajes de diagnóstico visibles en la UI
+    pkl_errors = []
 
-    # ── COLUMNAS: ajusta este orden si tus modelos fueron entrenados distinto ──
-    FEATURE_COLS_ZONA  = ["DEPARTAMENTO", "MUNICIPIO", "DELITO", "SEXO", "GRUPO_ETARIO", "AÑO"]
-    FEATURE_COLS_GRAV  = ["DEPARTAMENTO", "MUNICIPIO", "DELITO", "SEXO", "GRUPO_ETARIO", "AÑO"]
+    # ── MAPEO DE VALORES AL FORMATO DEL MODELO ────────────────────────────────
+    DELITO_MAP = {
+        "VIOLENCIA INTRAFAMILIAR": "VIOLENCIA INTRAFAMILIAR",
+        "VIOLENCIA SEXUAL":        "DELITOS SEXUALES",
+        "LESIONES PERSONALES":     "LESIONES PERSONALES",
+        "AMENAZAS":                "AMENAZAS",
+        "HURTO":                   "LESIONES PERSONALES",  # fallback
+        "HOMICIDIO":               "HOMICIDIO DOLOSO",
+    }
+    ETARIO_MAP = {
+        "DE 0 A 17 AÑOS":   "DE 14 A 17 A",
+        "DE 18 A 26 AÑOS":  "DE 18 A 26 A",
+        "DE 27 A 59 AÑOS":  "DE 27 A 59 A",
+        "DE 60 Y MÁS":      "MAYOR DE 60 A",
+    }
+    DEP_MAP = {
+        "BOGOTÁ D.C.":           "BOGOTÁ, D. C.",
+        "ANTIOQUIA":              "ANTIOQUIA",
+        "VALLE DEL CAUCA":        "VALLE DEL CAUCA",
+        "CUNDINAMARCA":           "CUNDINAMARCA",
+        "ATLÁNTICO":              "ATLÁNTICO",
+        "SANTANDER":              "SANTANDER",
+        "NARIÑO":                 "NARIÑO",
+        "CÓRDOBA":                "CÓRDOBA",
+        "BOLÍVAR":                "BOLÍVAR",
+        "TOLIMA":                 "TOLIMA",
+        "HUILA":                  "HUILA",
+        "CAUCA":                  "CAUCA",
+        "META":                   "META",
+        "CESAR":                  "CESAR",
+        "MAGDALENA":              "MAGDALENA",
+        "BOYACÁ":                 "BOYACÁ",
+        "CALDAS":                 "CALDAS",
+        "RISARALDA":              "RISARALDA",
+        "QUINDÍO":                "QUINDÍO",
+        "NORTE DE SANTANDER":     "NORTE DE SANTANDER",
+        "SUCRE":                  "SUCRE",
+        "LA GUAJIRA":             "LA GUAJIRA",
+        "CAQUETÁ":                "CAQUETÁ",
+        "ARAUCA":                 "ARAUCA",
+        "CASANARE":               "CASANARE",
+        "VICHADA":                "VICHADA",
+        "GUAINÍA":                "GUAINÍA",
+        "GUAVIARE":               "GUAVIARE",
+        "VAUPÉS":                 "VAUPÉS",
+        "AMAZONAS":               "AMAZONAS",
+        "PUTUMAYO":               "PUTUMAYO",
+        "CHOCÓ":                  "CHOCÓ",
+        "SAN ANDRÉS":             "ARCHIPIÉLAGO DE SAN ANDRÉS, PROVIDENCIA Y SANTA CATALINA",
+    }
+
+    delito_pkl  = DELITO_MAP.get(delito, "LESIONES PERSONALES")
+    etario_pkl  = ETARIO_MAP.get(etario, "DE 27 A 59 A")
+    dep_pkl     = DEP_MAP.get(dep, dep)
+
+    FEATURE_COLS = ["DEPARTAMENTO_HECHO", "MUNICIPIO_HECHO", "GRUPO_DELITO", "SEXO", "GRUPO_ETARIO", "AÑO"]
 
     # ── PREDICCIÓN ZONA con XGBoost ───────────────────────────────────────────
     try:
@@ -556,36 +607,35 @@ def calc_prediction(dep, mun, delito, sexo, etario, año):
         if le_z is None:
             raise ValueError("le_target_zona.pkl no cargado o no encontrado en el directorio")
 
-        # Crear DataFrame con orden de columnas garantizado
         row = pd.DataFrame([{
-            "DEPARTAMENTO": dep,
-            "MUNICIPIO":    mun,
-            "DELITO":       delito,
-            "SEXO":         sexo,
-            "GRUPO_ETARIO": etario,
-            "AÑO":          int(año),
-        }])[FEATURE_COLS_ZONA]
+            "DEPARTAMENTO_HECHO": dep_pkl,
+            "MUNICIPIO_HECHO":    mun,
+            "GRUPO_DELITO":       delito_pkl,
+            "SEXO":               sexo,
+            "GRUPO_ETARIO":       etario_pkl,
+            "AÑO":                int(año),
+        }])[FEATURE_COLS]
 
-        # Encoding de columnas categóricas con manejo de categorías desconocidas
-        for col in ["DEPARTAMENTO", "MUNICIPIO", "DELITO", "SEXO", "GRUPO_ETARIO"]:
-            if col not in enc_z:
-                raise ValueError(f"El encoder para la columna '{col}' no existe dentro de encoders_zona.pkl")
-            le_col = enc_z[col]
+        col_map = {
+            "DEPARTAMENTO_HECHO": "DEPARTAMENTO_HECHO",
+            "MUNICIPIO_HECHO":    "MUNICIPIO_HECHO",
+            "GRUPO_DELITO":       "GRUPO_DELITO",
+            "SEXO":               "SEXO",
+            "GRUPO_ETARIO":       "GRUPO_ETARIO",
+        }
+        for col, enc_key in col_map.items():
+            if enc_key not in enc_z:
+                raise ValueError(f"Encoder '{enc_key}' no encontrado en encoders_zona.pkl")
+            le_col = enc_z[enc_key]
             val    = str(row[col].iloc[0])
             if val not in le_col.classes_:
-                # Usa la primera clase conocida como fallback y avisa
                 fallback = le_col.classes_[0]
-                pkl_errors.append(
-                    f"⚠️ Zona — '{val}' no fue visto en entrenamiento para {col}. "
-                    f"Usando fallback: '{fallback}'"
-                )
+                pkl_errors.append(f"⚠️ Zona — '{val}' no visto en {col}. Fallback: '{fallback}'")
                 row[col] = le_col.transform([fallback])[0]
             else:
                 row[col] = le_col.transform([val])[0]
 
-        # Asegurar tipo numérico en AÑO después del encoding
         row["AÑO"] = int(año)
-
         zona_pred_num = xgb_z.predict(row)[0]
         zona          = le_z.inverse_transform([int(zona_pred_num)])[0]
         used_pkl      = True
@@ -605,45 +655,31 @@ def calc_prediction(dep, mun, delito, sexo, etario, año):
         if le_g is None:
             raise ValueError("le_target_gravedad.pkl no cargado o no encontrado en el directorio")
 
-        # Crear DataFrame con orden de columnas garantizado
         row2 = pd.DataFrame([{
-            "DEPARTAMENTO": dep,
-            "MUNICIPIO":    mun,
-            "DELITO":       delito,
-            "SEXO":         sexo,
-            "GRUPO_ETARIO": etario,
-            "AÑO":          int(año),
-        }])[FEATURE_COLS_GRAV]
+            "DEPARTAMENTO_HECHO": dep_pkl,
+            "MUNICIPIO_HECHO":    mun,
+            "GRUPO_DELITO":       delito_pkl,
+            "SEXO":               sexo,
+            "GRUPO_ETARIO":       etario_pkl,
+            "AÑO":                int(año),
+        }])[FEATURE_COLS]
 
         if pre_g is not None:
-            # Pipeline o ColumnTransformer: transforma strings directamente
             row2_transformed = pre_g.transform(row2)
-
         elif scl_g is not None:
-            # Solo scaler numérico: hay que encodear manualmente primero
             enc_z2 = MODELS.get("encoders_zona")
             if enc_z2 is not None:
-                for col in ["DEPARTAMENTO", "MUNICIPIO", "DELITO", "SEXO", "GRUPO_ETARIO"]:
-                    if col in enc_z2:
-                        le_col2 = enc_z2[col]
+                for col, enc_key in col_map.items():
+                    if enc_key in enc_z2:
+                        le_col2 = enc_z2[enc_key]
                         val2    = str(row2[col].iloc[0])
                         closest = val2 if val2 in le_col2.classes_ else le_col2.classes_[0]
                         if val2 not in le_col2.classes_:
-                            pkl_errors.append(
-                                f"⚠️ Gravedad — '{val2}' no visto en entrenamiento para {col}. "
-                                f"Usando fallback: '{closest}'"
-                            )
+                            pkl_errors.append(f"⚠️ Gravedad — '{val2}' no visto en {col}. Fallback: '{closest}'")
                         row2[col] = le_col2.transform([closest])[0]
             row2["AÑO"]      = int(año)
             row2_transformed = scl_g.transform(row2)
-
         else:
-            # Sin preprocesador: XGBoost debe haber sido entrenado con enable_categorical=True
-            # Si no, fallará aquí con un error claro
-            pkl_errors.append(
-                "⚠️ Gravedad — No se encontró preprocessor_gravedad.pkl ni scaler_gravedad.pkl. "
-                "Se asume que xgb_gravedad acepta strings nativos (enable_categorical=True)."
-            )
             row2_transformed = row2
 
         grav_pred_num = xgb_g.predict(row2_transformed)[0]
@@ -652,7 +688,6 @@ def calc_prediction(dep, mun, delito, sexo, etario, año):
 
     except Exception as e:
         pkl_errors.append(f"❌ Predicción GRAVEDAD (XGBoost) falló: {e}")
-
     # ── NOTA: lgbm_zona y pipe_lgbm_gravedad están cargados pero no se usan.
     # Si quieres activarlos como ensemble, descomenta el bloque de abajo:
     #
