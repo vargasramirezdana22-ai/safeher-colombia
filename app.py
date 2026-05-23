@@ -39,6 +39,12 @@ def load_models():
 
 MODELS = load_models()
 MODELS_OK = any(v is not None for v in MODELS.values())
+
+# DIAGNÓSTICO TEMPORAL
+import pathlib
+BASE_DIR = pathlib.Path(__file__).parent.resolve()
+st.write("📁 Directorio:", str(BASE_DIR))
+st.write("📄 PKL encontrados:", [f.name for f in BASE_DIR.iterdir() if f.suffix == ".pkl"])
 # ─── PAGE CONFIG ──────────────────────────────────────────────────────────────
 
 st.set_page_config(
