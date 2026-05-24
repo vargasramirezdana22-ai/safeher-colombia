@@ -1615,7 +1615,6 @@ elif "✈️" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Selectores: departamento + municipio ──────────────────────────────────
     col_dep, col_mun, col_btn = st.columns([2, 2, 1])
     with col_dep:
         dep_viaje = st.selectbox("🗺️ Departamento de destino:", DEPARTAMENTOS, key="dep_viaje")
@@ -1631,7 +1630,6 @@ elif "✈️" in page:
             data = CRIME_DATA.get(dep_viaje, {"score": 2.8, "zona": "BAJO", "gravedad": "BAJO", "municipios": 10})
             muns = get_municipios(dep_viaje)
             mun_sel = mun_viaje if mun_viaje != "— Todos —" else None
-            # Score ajustado si eligió municipio
             mun_score = None
             if mun_sel and dep_viaje in MUNICIPIO_DATA:
                 mun_info = next((m for m in MUNICIPIO_DATA[dep_viaje] if m["name"] == mun_sel), None)
@@ -1645,7 +1643,6 @@ elif "✈️" in page:
 
         vr = st.session_state.get("viaje_result")
         if vr:
-            # Usar score del municipio si aplica
             score_base = vr["data"]["score"]
             score = vr.get("mun_score") or score_base
             mun_label = f' · {vr["mun_sel"]}' if vr.get("mun_sel") else ""
@@ -1664,7 +1661,6 @@ elif "✈️" in page:
                 for i in range(5)
             ])
 
-            # ── Banner principal ──────────────────────────────────────────────
             st.markdown(f"""<div style="background:{safety['bg']};border:2px solid {safety['color']}30;
                 border-radius:24px;padding:24px 32px;margin-bottom:24px;display:flex;align-items:center;gap:24px;
                 box-shadow:0 4px 20px {safety['color']}18;">
@@ -1684,7 +1680,6 @@ elif "✈️" in page:
                 </div>
             </div>""", unsafe_allow_html=True)
 
-            # ── KPIs rápidos ──────────────────────────────────────────────────
             zonas_list = ["MUY BAJO","BAJO","MEDIO-BAJO","MEDIO-ALTO","ALTO","MUY ALTO"]
             delito_scores = sorted(
                 [{"d": d, "sc": round(score * DELIT_FACTOR.get(d, 1.0), 1)} for d in DELITOS],
@@ -1709,17 +1704,14 @@ elif "✈️" in page:
                         <div style="font-size:13px;font-weight:800;color:{color};line-height:1.3;">{val}</div>
                     </div>""", unsafe_allow_html=True)
 
-            # ── Tabs: Municipios | Gráficas | Consejos ────────────────────────
             tab_muns, tab_graficas, tab_consejos = st.tabs([
                 "🏙️ Municipios del Departamento",
                 "📊 Análisis Visual de Riesgo",
                 "💡 Consejos de Seguridad"
             ])
 
-            # ── Tab 1: Municipios ──────────────────────────────────────────────
             with tab_muns:
                 st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin:14px 0 16px;">🏙️ Selecciona un municipio para ver su nivel de riesgo individual</div>', unsafe_allow_html=True)
-
                 mun_data_dep = MUNICIPIO_DATA.get(vr["dep"], [])
                 mun_sorted_v = sorted(mun_data_dep, key=lambda x: x["score"], reverse=True)
                 max_mun_s = mun_sorted_v[0]["score"] if mun_sorted_v else 1
@@ -1756,19 +1748,17 @@ elif "✈️" in page:
                             st.session_state.pop("viaje_tips", None)
                             st.rerun()
 
-            # ── Tab 2: Gráficas ────────────────────────────────────────────────
             with tab_graficas:
                 import plotly.graph_objects as go
 
                 col_g1, col_g2 = st.columns(2)
 
-                # Gráfica 1: Barras horizontales por tipo de delito
                 with col_g1:
                     st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">⚖️ Score de Riesgo por Tipo de Delito</div>', unsafe_allow_html=True)
                     labels_d = [item["d"].title() for item in delito_scores]
                     values_d = [item["sc"] for item in delito_scores]
-                    zonas_d  = [zonas_list[min(max(round(v)-1, 0), 5)] for v in values_d]
-                    bar_colors_d = [RISK_LEVELS.get(z, {"color":"#888"})["color"] for z in zonas_d]
+                    zonas_d = [zonas_list[min(max(round(v)-1, 0), 5)] for v in values_d]
+                    bar_colors_d = [RISK_LEVELS.get(z, {"color": "#888"})["color"] for z in zonas_d]
                     fig_bar = go.Figure(go.Bar(
                         x=values_d, y=labels_d, orientation="h",
                         marker=dict(color=bar_colors_d, opacity=0.88, line=dict(width=0)),
@@ -1785,7 +1775,6 @@ elif "✈️" in page:
                     )
                     st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
 
-                # Gráfica 2: Gauge / indicador de riesgo general
                 with col_g2:
                     st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">🎯 Indicador General de Riesgo</div>', unsafe_allow_html=True)
                     fig_gauge = go.Figure(go.Indicator(
@@ -1820,7 +1809,6 @@ elif "✈️" in page:
 
                 col_g3, col_g4 = st.columns(2)
 
-                # Gráfica 3: Radar de dimensiones de riesgo
                 with col_g3:
                     st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">🕸️ Radar de Dimensiones de Riesgo</div>', unsafe_allow_html=True)
                     radar_cats_v = ["Violencia física", "Riesgo nocturno", "Transporte", "Zonas remotas", "Riesgo digital", "Acoso"]
@@ -1833,10 +1821,13 @@ elif "✈️" in page:
                         round(min(s_n * 0.65, 1.0) * 100),
                         round(min(s_n * 0.90, 1.0) * 100),
                     ]
+                    # Convertir color hex a rgb para fillcolor
+                    h = safety["color"].lstrip("#")
+                    r_val, g_val, b_val = int(h[0:2],16), int(h[2:4],16), int(h[4:6],16)
                     fig_radar = go.Figure()
                     fig_radar.add_trace(go.Scatterpolar(
                         r=radar_vals_v, theta=radar_cats_v, fill='toself',
-                        fillcolor=f"rgba({','.join(str(int(safety['color'].lstrip('#')[i:i+2], 16)) for i in (0,2,4))},0.18)",
+                        fillcolor=f"rgba({r_val},{g_val},{b_val},0.18)",
                         line=dict(color=safety["color"], width=2.5),
                         marker=dict(size=7, color=safety["color"]),
                         name=vr["dep"]
@@ -1844,7 +1835,7 @@ elif "✈️" in page:
                     fig_radar.add_trace(go.Scatterpolar(
                         r=[50]*6, theta=radar_cats_v,
                         line=dict(color="#E2E8F0", width=1, dash="dot"),
-                        showlegend=False, mode="lines", name="Referencia"
+                        showlegend=False, mode="lines"
                     ))
                     fig_radar.update_layout(
                         polar=dict(
@@ -1859,7 +1850,6 @@ elif "✈️" in page:
                     )
                     st.plotly_chart(fig_radar, use_container_width=True, config={"displayModeBar": False})
 
-                # Gráfica 4: Dona de distribución de riesgo entre municipios
                 with col_g4:
                     st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">🍩 Distribución de Municipios por Nivel</div>', unsafe_allow_html=True)
                     mun_dep_list = MUNICIPIO_DATA.get(vr["dep"], [])
@@ -1882,38 +1872,39 @@ elif "✈️" in page:
                         height=240, margin=dict(l=10, r=10, t=10, b=10),
                         paper_bgcolor="rgba(0,0,0,0)",
                         font=dict(family="Plus Jakarta Sans"),
-                        annotations=[dict(text=f"{len(mun_dep_list)}<br><span style='font-size:9px'>munic.</span>",
-                                          x=0.5, y=0.5, font_size=16, showarrow=False,
-                                          font=dict(color="#1E1B4B", family="Georgia"))]
+                        annotations=[dict(
+                            text=f"{len(mun_dep_list)}<br>munic.",
+                            x=0.5, y=0.5, font_size=14, showarrow=False,
+                            font=dict(color="#1E1B4B", family="Georgia, serif")
+                        )]
                     )
                     st.plotly_chart(fig_dona, use_container_width=True, config={"displayModeBar": False})
 
-            # ── Tab 3: Consejos de Seguridad ──────────────────────────────────
             with tab_consejos:
+                import json as _json
+
                 st.markdown(f'<div style="font-size:15px;font-weight:800;color:#1E1B4B;margin:14px 0 18px;">🤖 Consejos Personalizados — {vr["dep"]}{mun_label}</div>', unsafe_allow_html=True)
 
                 if "viaje_tips" not in st.session_state:
                     with st.spinner("✨ Preparando consejos personalizados con IA..."):
                         tips_raw = call_claude(
-                            """Eres experta en seguridad para mujeres viajeras en Colombia. Responde en español con bullets y emojis.
-Devuelve EXACTAMENTE este JSON (sin markdown, sin texto extra):
+                            """Eres experta en seguridad para mujeres viajeras en Colombia. Responde en español.
+Devuelve EXACTAMENTE este JSON (sin markdown, sin texto extra, sin comillas adicionales):
 {
   "seguridad": ["consejo1","consejo2","consejo3"],
   "alojamiento": ["consejo1","consejo2","consejo3"],
   "horarios": ["consejo1","consejo2"],
   "transporte": ["consejo1","consejo2","consejo3"],
-  "emergencias": ["Policía: 123","Línea Mujer: 155","consejo local"],
+  "emergencias": ["Policia Nacional: 123","Linea Mujer: 155","consejo local"],
   "cultura": ["consejo1","consejo2"],
   "tecnologia": ["consejo1","consejo2"],
   "salud": ["consejo1","consejo2"]
 }
-Los consejos deben ser concretos, prácticos y específicos para el departamento indicado. Mínimo 1 consejo único de ese departamento por sección.""",
-                            f"Departamento: {vr['dep']}, Colombia. Score de riesgo: {score:.1f}/6.0 (zona: {vr['data']['zona']}). Municipio: {vr.get('mun_sel','todos'}."
+Los consejos deben ser concretos, practicos y especificos para el departamento indicado.""",
+                            f"Departamento: {vr['dep']}, Colombia. Score de riesgo: {score:.1f}/6.0 (zona: {vr['data']['zona']}). Municipio: {vr.get('mun_sel', 'todos')}."
                         )
-                        # Parsear JSON
-                        import json as _json
                         try:
-                            clean = tips_raw.strip().replace("```json","").replace("```","").strip()
+                            clean = tips_raw.strip().replace("```json", "").replace("```", "").strip()
                             tips_dict = _json.loads(clean)
                         except Exception:
                             tips_dict = None
@@ -1923,18 +1914,17 @@ Los consejos deben ser concretos, prácticos y específicos para el departamento
                 tips_dict = st.session_state.get("viaje_tips_dict")
 
                 SECCIONES_CONSEJOS = [
-                    ("seguridad",    "🛡️", "Seguridad Personal",        "#DC2626", "#FEF2F2", "#FECDD3"),
-                    ("alojamiento",  "🏠", "Mejores Zonas para Alojarse","#7C3AED", "#F5F3FF", "#DDD6FE"),
-                    ("horarios",     "🕐", "Horarios Seguros",           "#059669", "#ECFDF5", "#A7F3D0"),
-                    ("transporte",   "🚗", "Transporte Recomendado",     "#2563EB", "#EFF6FF", "#BFDBFE"),
-                    ("tecnologia",   "📱", "Tecnología y Conectividad",  "#0891B2", "#ECFEFF", "#A5F3FC"),
-                    ("cultura",      "🌺", "Cultura y Costumbres Locales","#D97706", "#FFFBEB", "#FDE68A"),
-                    ("salud",        "💊", "Salud y Prevención",         "#16A34A", "#F0FDF4", "#BBF7D0"),
-                    ("emergencias",  "📞", "Emergencias Locales",        "#991B1B", "#FFF1F2", "#FECDD3"),
+                    ("seguridad",   "🛡️", "Seguridad Personal",         "#DC2626", "#FEF2F2", "#FECDD3"),
+                    ("alojamiento", "🏠", "Mejores Zonas para Alojarse", "#7C3AED", "#F5F3FF", "#DDD6FE"),
+                    ("horarios",    "🕐", "Horarios Seguros",            "#059669", "#ECFDF5", "#A7F3D0"),
+                    ("transporte",  "🚗", "Transporte Recomendado",      "#2563EB", "#EFF6FF", "#BFDBFE"),
+                    ("tecnologia",  "📱", "Tecnología y Conectividad",   "#0891B2", "#ECFEFF", "#A5F3FC"),
+                    ("cultura",     "🌺", "Cultura y Costumbres Locales","#D97706", "#FFFBEB", "#FDE68A"),
+                    ("salud",       "💊", "Salud y Prevención",          "#16A34A", "#F0FDF4", "#BBF7D0"),
+                    ("emergencias", "📞", "Emergencias Locales",         "#991B1B", "#FFF1F2", "#FECDD3"),
                 ]
 
                 if tips_dict:
-                    # Layout 2 columnas para las secciones
                     cols_tips = st.columns(2)
                     for idx, (key, icon, titulo, color, bg, border_c) in enumerate(SECCIONES_CONSEJOS):
                         items = tips_dict.get(key, [])
@@ -1959,54 +1949,19 @@ Los consejos deben ser concretos, prácticos y específicos para el departamento
                                 {bullets}
                             </div>""", unsafe_allow_html=True)
                 else:
-                    # Fallback: mostrar texto plano formateado
                     tips_text = st.session_state.get("viaje_tips", "")
                     if tips_text:
-                        # Dividir por secciones usando emojis como separadores
-                        secciones_fb = [
-                            ("🛡️", "Seguridad Personal", "#DC2626", "#FEF2F2"),
-                            ("🏠", "Alojamiento", "#7C3AED", "#F5F3FF"),
-                            ("🕐", "Horarios Seguros", "#059669", "#ECFDF5"),
-                            ("🚗", "Transporte", "#2563EB", "#EFF6FF"),
-                            ("📞", "Emergencias", "#991B1B", "#FFF1F2"),
-                        ]
-                        lines = tips_text.split("\n")
-                        current = []
-                        current_sec = None
-                        parsed = {}
-                        for line in lines:
-                            for emoji, label, *_ in secciones_fb:
-                                if emoji in line:
-                                    if current_sec:
-                                        parsed[current_sec] = current
-                                    current_sec = label
-                                    current = []
-                                    break
-                            else:
-                                if line.strip().startswith("*") or line.strip().startswith("-"):
-                                    current.append(line.strip().lstrip("*- "))
-                        if current_sec:
-                            parsed[current_sec] = current
+                        st.markdown(f"""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:16px;
+                            padding:20px 24px;border:1px solid #C4B5FD;font-size:13px;line-height:1.85;
+                            white-space:pre-wrap;color:#1E1B4B;">{tips_text}</div>""", unsafe_allow_html=True)
 
-                        cols_fb = st.columns(2)
-                        for i, (emoji, label, color, bg) in enumerate(secciones_fb):
-                            items_fb = parsed.get(label, [])
-                            if not items_fb:
-                                continue
-                            with cols_fb[i % 2]:
-                                bullets_fb = "".join([f'<div style="display:flex;gap:8px;margin-bottom:8px;"><span style="color:{color};">•</span><span style="font-size:12px;color:#374151;line-height:1.6;">{it}</span></div>' for it in items_fb if it])
-                                st.markdown(f"""<div style="background:{bg};border-radius:16px;padding:14px 16px;margin-bottom:12px;border-left:4px solid {color};">
-                                    <div style="font-size:13px;font-weight:800;color:#1E1B4B;margin-bottom:10px;">{emoji} {label}</div>
-                                    {bullets_fb}
-                                </div>""", unsafe_allow_html=True)
-
-                # Aviso general basado en score
                 if score >= 4.0:
                     av_bg, av_border, av_color, av_icon, av_text = "#FEF2F2","#FECDD3","#991B1B","🚨","Zona de ALTO RIESGO. Se recomienda evitar viajes no esenciales y consultar a autoridades antes de viajar."
                 elif score >= 3.0:
                     av_bg, av_border, av_color, av_icon, av_text = "#FFFBEB","#FDE68A","#92400E","⚠️","Riesgo MODERADO. Viaja informada, comparte tu itinerario con alguien de confianza y guarda los números de emergencia."
                 else:
                     av_bg, av_border, av_color, av_icon, av_text = "#ECFDF5","#A7F3D0","#065F46","✅","Destino RELATIVAMENTE SEGURO. Mantén precauciones básicas para disfrutar tu viaje tranquila."
+
                 st.markdown(f"""<div style="background:{av_bg};border:1.5px solid {av_border};border-radius:16px;
                     padding:16px 22px;display:flex;align-items:flex-start;gap:12px;margin-top:8px;">
                     <span style="font-size:22px;">{av_icon}</span>
@@ -2014,11 +1969,12 @@ Los consejos deben ser concretos, prácticos y específicos para el departamento
                         <div style="font-weight:800;color:{av_color};font-size:13px;margin-bottom:4px;">Recomendación General</div>
                         <div style="font-size:12px;color:{av_color};opacity:0.9;line-height:1.6;">{av_text}</div>
                     </div>
-                    <div style="margin-left:auto;display:flex;gap:6px;">
+                    <div style="margin-left:auto;display:flex;gap:6px;flex-shrink:0;">
                         <a href="tel:155" style="background:{av_color};color:#fff;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">📞 155 Línea Mujer</a>
                         <a href="tel:123" style="background:#DC2626;color:#fff;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">🚨 123 Policía</a>
                     </div>
                 </div>""", unsafe_allow_html=True)
+
 # ── EMERGENCIAS ────────────────────────────────────────────────────────────────
 elif "🚨" in page:
     st.markdown("""
@@ -2452,7 +2408,7 @@ FORMATO: Español cálido y cercano, máx 200 palabras, emojis con moderación (
         with col_info_sara:
             st.markdown('<div style="font-size:11px;color:#A78BFA;padding:8px 0;">🔒 Esta conversación es completamente confidencial y no se almacena de forma permanente.</div>', unsafe_allow_html=True)
 
-#pagina ayuda
+#pagina
 # ── ACERCA DE ─────────────────────────────────────────────────────────────────
 elif "i️" in page:
     st.markdown("""
