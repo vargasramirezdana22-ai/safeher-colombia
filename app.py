@@ -2176,34 +2176,63 @@ elif "🚔" in page:
         {"tipo":"Línea Nacional","icon":"👨‍👩‍👧","nom":"ICBF — Línea 141","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#059669","href":"tel:141","phone":"141","horario":"24/7 Gratuita","desc":"Instituto Colombiano de Bienestar Familiar. Protección familiar, menores en riesgo, orientación a mujeres.","transporte":"Llama al 141 desde cualquier teléfono — sin costo"},
     ]
 
-    # ── Inyectar JavaScript para geolocalización ─────────────────────────────
+    # ── Geolocalización automática vía query params ───────────────────────────
+    # Leer coordenadas GPS inyectadas por el script de geolocalización
+    qp = st.query_params
+    if "geo_lat" in qp and "geo_lon" in qp and "geo_city" in qp:
+        try:
+            _glat = float(qp["geo_lat"])
+            _glon = float(qp["geo_lon"])
+            _gcity = qp["geo_city"]
+            if st.session_state.get("gps_lat") != _glat:
+                st.session_state["gps_lat"]  = _glat
+                st.session_state["gps_lon"]  = _glon
+                st.session_state["detected_city"] = _gcity
+                st.session_state["geo_auto_done"] = True
+        except Exception:
+            pass
+
+    # ── Inyectar JS: solicita geolocación automáticamente al cargar ──────────
     st.components.v1.html("""
     <script>
     (function() {
-        function sendLocation(lat, lon, city) {
-            // Almacenar en sessionStorage para que Streamlit lo lea vía query params
-            const msg = JSON.stringify({lat, lon, city});
-            window.parent.postMessage({type: 'streamlit:setComponentValue', value: msg}, '*');
+        if (window._geoInjected) return;
+        window._geoInjected = true;
+
+        function normalize(s) {
+            return s.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .trim();
         }
-        if (!window._geoRequested) {
-            window._geoRequested = true;
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        const lat = pos.coords.latitude;
-                        const lon = pos.coords.longitude;
-                        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
-                            .then(r => r.json())
-                            .then(data => {
-                                const city = data.address.city || data.address.town || data.address.county || 'Colombia';
-                                sendLocation(lat, lon, city);
-                            })
-                            .catch(() => sendLocation(lat, lon, 'Ubicación detectada'));
-                    },
-                    function(err) { console.log('Geolocation error:', err); },
-                    {enableHighAccuracy: true, timeout: 10000}
-                );
-            }
+
+        function pushToStreamlit(lat, lon, city) {
+            // Escribir en la URL para que Streamlit los lea como query_params
+            const url = new URL(window.parent.location.href);
+            url.searchParams.set('geo_lat', lat.toFixed(6));
+            url.searchParams.set('geo_lon', lon.toFixed(6));
+            url.searchParams.set('geo_city', normalize(city));
+            window.parent.history.replaceState({}, '', url.toString());
+            // Forzar re-run de Streamlit tocando un parámetro especial
+            window.parent.location.search = url.search;
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
+                        .then(r => r.json())
+                        .then(data => {
+                            const city = data.address.city || data.address.town ||
+                                         data.address.municipality || data.address.county || 'colombia';
+                            pushToStreamlit(lat, lon, city);
+                        })
+                        .catch(() => pushToStreamlit(lat, lon, 'colombia'));
+                },
+                function(err) { console.log('Geo error:', err.code, err.message); },
+                {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
+            );
         }
     })();
     </script>
@@ -2244,66 +2273,121 @@ elif "🚔" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Selector de ciudad con opción de geolocalización ─────────────────────
-    geo_col, city_col = st.columns([1, 2])
-    with geo_col:
-        if st.button("📡 Detectar mi ubicación", type="primary", use_container_width=True, key="geo_btn"):
-            st.session_state["geo_requested"] = True
-            st.markdown("""
-            <script>
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&format=json&accept-language=es')
-                    .then(r => r.json())
-                    .then(d => {
-                        const city = (d.address.city || d.address.town || d.address.county || 'bogotá').toLowerCase();
-                        const input = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-                        if(input){input.value=city;input.dispatchEvent(new Event('input',{bubbles:true}));}
-                    });
-                }, null, {enableHighAccuracy:true,timeout:8000});
-            }
-            </script>
-            """, unsafe_allow_html=True)
-            st.info("📡 Solicitando ubicación al dispositivo... Si el navegador lo pide, acepta el permiso.", icon="📍")
+    # ── Helper: normalizar texto (quita tildes, mayúsculas, espacios extra) ────
+    def _norm(s):
+        import unicodedata
+        s = s.lower().strip()
+        s = unicodedata.normalize('NFD', s)
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        return s
 
+    # ── Helper: distancia haversine en km ────────────────────────────────────
+    def _haversine(lat1, lon1, lat2, lon2):
+        R = 6371.0
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
+        return R * 2 * math.asin(math.sqrt(a))
+
+    # ── Estado: coordenadas GPS reales (si se detectaron) ────────────────────
+    gps_lat = st.session_state.get("gps_lat")
+    gps_lon = st.session_state.get("gps_lon")
+    geo_auto_done = st.session_state.get("geo_auto_done", False)
+
+    # ── Selector de ciudad ────────────────────────────────────────────────────
+    if geo_auto_done:
+        _location_label = f"📡 Ubicación detectada automáticamente: **{st.session_state.get('detected_city','').title()}**"
+        st.success(_location_label + "  — *Buscando entidades a 20 km a la redonda…*")
+
+    city_col, clear_col = st.columns([3, 1])
     with city_col:
         city_input = st.text_input(
-            "📍 O escribe tu ciudad:",
-            value=st.session_state.get("detected_city", "Medellín"),
+            "📍 O escribe tu ciudad (sin importar mayúsculas ni tildes):",
+            value=st.session_state.get("detected_city", ""),
             key="ayuda_city",
-            placeholder="Ej: Bogotá, Cali, Barranquilla, Bucaramanga..."
+            placeholder="Ej: bogota, medellín, CALI, barranquilla..."
         )
+    with clear_col:
+        st.markdown("<div style='padding-top:28px;'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Borrar", use_container_width=True, key="clear_city"):
+            st.session_state.pop("detected_city", None)
+            st.session_state.pop("gps_lat", None)
+            st.session_state.pop("gps_lon", None)
+            st.session_state.pop("geo_auto_done", None)
+            # Limpiar query params
+            st.query_params.clear()
+            st.rerun()
 
-    # Normalizar ciudad para buscar en el diccionario
-    city_key = city_input.lower().strip()
-    city_key = city_key.replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u")
-    # Detectar ciudad aproximada
+    # ── Normalizar lo que escribió el usuario ─────────────────────────────────
+    city_key = _norm(city_input)
+
+    # ── Buscar coincidencia en el diccionario (fuzzy, sin tildes, sin case) ───
     city_match = None
+    # 1) Coincidencia exacta o contenida
     for k in ENTIDADES_COL.keys():
-        if k in city_key or city_key in k:
+        kn = _norm(k)
+        if kn == city_key or kn in city_key or city_key in kn:
             city_match = k
             break
+    # 2) Coincidencia por palabras individuales
     if not city_match:
         for k in ENTIDADES_COL.keys():
-            if any(word in city_key for word in k.split()):
+            kn = _norm(k)
+            if any(word in city_key for word in kn.split() if len(word) > 3):
+                city_match = k
+                break
+    # 3) Coincidencia parcial por primeros caracteres (≥4 letras)
+    if not city_match and len(city_key) >= 4:
+        for k in ENTIDADES_COL.keys():
+            kn = _norm(k)
+            if kn.startswith(city_key[:4]) or city_key.startswith(kn[:4]):
                 city_match = k
                 break
 
-    entidades_ciudad = ENTIDADES_COL.get(city_match, [])
+    # ── Seleccionar y ordenar entidades ───────────────────────────────────────
+    # Si tenemos GPS exacto, buscar en TODAS las ciudades a ≤ 20 km
+    RADIO_KM = 20.0
+    entidades_ciudad = []
+    usando_gps = False
+
+    if gps_lat is not None and gps_lon is not None:
+        # Recopilar todas las entidades de todas las ciudades y filtrar por distancia
+        _todas = [e for lista in ENTIDADES_COL.values() for e in lista]
+        entidades_cercanas = []
+        for e in _todas:
+            if e.get("lat") and e.get("lon") and e["lat"] != 0:
+                dist = _haversine(gps_lat, gps_lon, e["lon"], e["lat"])  # nota: lat/lon en BD pueden estar invertidos
+                # Intentar también con lat/lon en orden correcto
+                dist2 = _haversine(gps_lat, gps_lon, e["lat"], e["lon"])
+                d = min(dist, dist2)
+                if d <= RADIO_KM:
+                    entidades_cercanas.append((d, e))
+        entidades_cercanas.sort(key=lambda x: x[0])
+        entidades_ciudad = [e for _, e in entidades_cercanas]
+        usando_gps = True
+        if not entidades_ciudad:
+            # Fallback a ciudad detectada si no hay nada a 20km
+            entidades_ciudad = ENTIDADES_COL.get(city_match, [])
+            usando_gps = False
+    else:
+        entidades_ciudad = ENTIDADES_COL.get(city_match, [])
+
     entidades = entidades_ciudad + ENTIDADES_NACIONALES
 
     if not entidades_ciudad:
         st.warning(
-            f"📍 No tenemos entidades específicas para **{city_input}** aún. "
+            f"📍 No tenemos entidades específicas para **{city_input.title()}** aún. "
             "Mostrando líneas nacionales disponibles para toda Colombia. "
             "Llama al **155** para que te orienten a la entidad más cercana.",
             icon="ℹ️"
         )
     else:
+        _label = city_input.title() if city_input.strip() else "tu ubicación"
+        _extra = f" · radio {RADIO_KM:.0f} km 📡" if usando_gps else ""
         st.markdown(
             f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
             f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
-            f'<strong style="color:#1E1B4B;">{city_input}</strong> + líneas nacionales</div>',
+            f'<strong style="color:#1E1B4B;">{_label}</strong>{_extra} + líneas nacionales</div>',
             unsafe_allow_html=True
         )
 
