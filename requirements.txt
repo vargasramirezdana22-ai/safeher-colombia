@@ -11,5 +11,6 @@ anthropic
 groq
 plotly
 folium==0.20.0
-
+requests
+geopy
 
