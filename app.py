@@ -61,15 +61,15 @@ st.markdown("""
     if(document.getElementById(id))return;
     var s=document.createElement('style');
     s.id=id;
-    s.textContent='section[data-testid="stSidebar"],section[data-testid="stSidebar"]>div:first-child{background:#FDFBFF!important}'
-    +'section[data-testid="stSidebar"]{border-right:1.5px solid #EDE9FE!important;}'
+    s.textContent='section[data-testid="stSidebar"],section[data-testid="stSidebar"]>div:first-child{background:linear-gradient(180deg,#FFFFFF 0%,#FBF9FF 100%)!important}'
+    +'section[data-testid="stSidebar"]{border-right:1px solid #ECE6F7!important;}'
     +'section[data-testid="stSidebar"] [data-baseweb="radio"]>div:first-child{display:none!important}'
     +'section[data-testid="stSidebar"] label[data-baseweb="radio"]{'
-    +'padding:9px 14px!important;border-radius:12px!important;font-size:13px!important;'
-    +'font-weight:600!important;color:#6D28D9!important;border:1.5px solid transparent!important;'
-    +'margin-bottom:2px!important;cursor:pointer!important;transition:background 0.15s!important;}'
+    +'padding:10px 14px!important;border-radius:12px!important;font-size:13px!important;'
+    +'font-weight:600!important;color:#5B3FA0!important;border:1px solid transparent!important;'
+    +'margin-bottom:3px!important;cursor:pointer!important;transition:all 0.2s ease!important;}'
     +'section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover{'
-    +'background:#F0EBFF!important;border-color:#DDD6FE!important;color:#4C1D95!important;}';
+    +'background:#F6F1FF!important;border-color:#E8DEFB!important;color:#3B1FA8!important;}';
     document.head.appendChild(s);
 })();
 setTimeout(function(){
@@ -77,15 +77,15 @@ setTimeout(function(){
     if(s){s.parentNode.removeChild(s);}
     var ns=document.createElement('style');
     ns.id='sh-sidebar-css';
-    ns.textContent='section[data-testid="stSidebar"],section[data-testid="stSidebar"]>div:first-child{background:#FDFBFF!important}'
-    +'section[data-testid="stSidebar"]{border-right:1.5px solid #EDE9FE!important;}'
+    ns.textContent='section[data-testid="stSidebar"],section[data-testid="stSidebar"]>div:first-child{background:linear-gradient(180deg,#FFFFFF 0%,#FBF9FF 100%)!important}'
+    +'section[data-testid="stSidebar"]{border-right:1px solid #ECE6F7!important;}'
     +'section[data-testid="stSidebar"] [data-baseweb="radio"]>div:first-child{display:none!important}'
     +'section[data-testid="stSidebar"] label[data-baseweb="radio"]{'
-    +'padding:9px 14px!important;border-radius:12px!important;font-size:13px!important;'
-    +'font-weight:600!important;color:#6D28D9!important;border:1.5px solid transparent!important;'
-    +'margin-bottom:2px!important;cursor:pointer!important;}'
+    +'padding:10px 14px!important;border-radius:12px!important;font-size:13px!important;'
+    +'font-weight:600!important;color:#5B3FA0!important;border:1px solid transparent!important;'
+    +'margin-bottom:3px!important;cursor:pointer!important;}'
     +'section[data-testid="stSidebar"] label[data-baseweb="radio"]:hover{'
-    +'background:#F0EBFF!important;border-color:#DDD6FE!important;color:#4C1D95!important;}';
+    +'background:#F6F1FF!important;border-color:#E8DEFB!important;color:#3B1FA8!important;}';
     document.head.appendChild(ns);
 },800);
 </script>
@@ -93,12 +93,38 @@ setTimeout(function(){
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+/* ── Paleta elegante: blancos + morados suaves + dorado ── */
+:root{
+    --sh-bg:        #FAF7FF;
+    --sh-surface:   #FFFFFF;
+    --sh-surface-2: #FBF9FF;
+    --sh-border:    #ECE6F7;
+    --sh-border-2:  #E0D6F4;
+    --sh-purple-50: #F6F1FF;
+    --sh-purple-100:#EDE4FB;
+    --sh-purple-300:#C4B0EE;
+    --sh-purple-500:#7C4DD1;
+    --sh-purple-600:#6936C3;
+    --sh-purple-700:#52269E;
+    --sh-purple-900:#2A1565;
+    --sh-ink:       #1B1340;
+    --sh-muted:     #6C6488;
+    --sh-gold:      #C9A24A;
+    --sh-gold-soft: #E8C46A;
+    --sh-gold-deep: #A8852F;
+    --sh-gold-glow: rgba(201,162,74,0.28);
+}
 
 html, body, [class*="css"] {
     font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif !important;
-    background: #F5F3FF !important;
+    background: var(--sh-bg) !important;
+    color: var(--sh-ink) !important;
 }
+
+h1,h2,h3,.sh-display{ letter-spacing:-0.4px !important; }
+
 
 #MainMenu {visibility: hidden;}
 footer {visibility: hidden;}
@@ -110,14 +136,14 @@ header {visibility: hidden;}
 [data-testid="stSidebar"] > div,
 section[data-testid="stSidebar"],
 section[data-testid="stSidebar"] > div {
-    background: #FDFBFF !important;
+    background: linear-gradient(180deg, #FFFFFF 0%, var(--sh-surface-2) 100%) !important;
 }
 
 [data-testid="stSidebar"] {
-    border-right: 1.5px solid #EDE9FE !important;
+    border-right: 1px solid var(--sh-border) !important;
     min-width: 252px !important;
     max-width: 252px !important;
-    box-shadow: 4px 0 24px rgba(124,58,237,0.08) !important;
+    box-shadow: 6px 0 32px rgba(82,38,158,0.06) !important;
 }
 
 [data-testid="stSidebar"] > div:first-child { padding: 0 !important; }
@@ -128,32 +154,33 @@ section[data-testid="stSidebar"] > div {
 [data-testid="stSidebar"] div[role="radiogroup"] label {
     display: flex !important;
     align-items: center !important;
-    padding: 9px 14px !important;
+    padding: 10px 14px !important;
     border-radius: 12px !important;
     cursor: pointer !important;
     font-size: 13px !important;
     font-weight: 600 !important;
-    color: #6D28D9 !important;
-    transition: background 0.15s, color 0.15s, border-color 0.15s !important;
-    margin-bottom: 2px !important;
+    color: var(--sh-purple-700) !important;
+    transition: all 0.2s ease !important;
+    margin-bottom: 3px !important;
     white-space: nowrap !important;
-    border: 1.5px solid transparent !important;
+    border: 1px solid transparent !important;
     background: transparent !important;
 }
 
 [data-testid="stSidebar"] .stRadio label:hover,
 [data-testid="stSidebar"] [data-testid="stRadio"] label:hover,
 [data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-    background: #F0EBFF !important;
-    color: #4C1D95 !important;
-    border-color: #DDD6FE !important;
+    background: var(--sh-purple-50) !important;
+    color: var(--sh-purple-900) !important;
+    border-color: #E8DEFB !important;
 }
 
 [data-testid="stSidebar"] .stRadio label[data-baseweb="radio"]:has(input:checked),
 [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
-    background: #EDE9FE !important;
-    color: #3B1FA8 !important;
-    border-color: #C4B5FD !important;
+    background: linear-gradient(135deg, #FFFFFF, var(--sh-purple-50)) !important;
+    color: var(--sh-purple-900) !important;
+    border-color: var(--sh-gold) !important;
+    box-shadow: 0 2px 10px rgba(201,162,74,0.18), inset 3px 0 0 var(--sh-gold) !important;
 }
 
 [data-testid="stSidebar"] input[type="radio"] { display: none !important; }
@@ -163,137 +190,158 @@ section[data-testid="stSidebar"] > div {
 [data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child { display: none !important; }
 
 .main .block-container {
-    padding: 24px 36px !important;
+    padding: 28px 44px !important;
     max-width: 100% !important;
-    background: #F5F3FF !important;
+    background:
+        radial-gradient(1100px 480px at 85% -10%, rgba(201,162,74,0.07), transparent 60%),
+        radial-gradient(900px 420px at -10% 10%, rgba(124,77,209,0.08), transparent 60%),
+        var(--sh-bg) !important;
 }
 
 .sh-card {
-    background: #FFFFFF;
-    border-radius: 20px;
-    border: 1px solid #EDE9FE;
-    box-shadow: 0 2px 20px rgba(109,40,217,0.07);
-    padding: 22px;
-    margin-bottom: 16px;
+    background: var(--sh-surface);
+    border-radius: 22px;
+    border: 1px solid var(--sh-border);
+    box-shadow: 0 4px 28px rgba(82,38,158,0.06);
+    padding: 24px;
+    margin-bottom: 18px;
+    position: relative;
+}
+.sh-card::before{
+    content:""; position:absolute; inset:0 0 auto 0; height:2px;
+    background: linear-gradient(90deg, transparent, var(--sh-gold-soft), var(--sh-gold), transparent);
+    border-radius: 22px 22px 0 0; opacity:.6;
 }
 
 .stButton > button {
     border-radius: 12px !important;
     font-weight: 700 !important;
     font-size: 14px !important;
-    transition: all 0.2s ease !important;
+    letter-spacing: 0.2px !important;
+    transition: all 0.25s ease !important;
     border: none !important;
-    padding: 10px 20px !important;
-    box-shadow: 0 2px 8px rgba(109,40,217,0.15) !important;
+    padding: 11px 22px !important;
+    box-shadow: 0 4px 14px rgba(82,38,158,0.14) !important;
 }
 
 .stButton > button:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(109,40,217,0.25) !important;
+    box-shadow: 0 10px 26px rgba(82,38,158,0.22), 0 0 0 1px var(--sh-gold-glow) !important;
 }
 
 .stButton > button[kind="primary"] {
-    background: linear-gradient(135deg, #5B21B6, #7C3AED) !important;
-    color: white !important;
+    background: linear-gradient(135deg, var(--sh-purple-900) 0%, var(--sh-purple-600) 55%, var(--sh-purple-500) 100%) !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(201,162,74,0.45) !important;
 }
 
 .stButton > button[kind="secondary"] {
-    background: #F5F3FF !important;
-    color: #5B21B6 !important;
-    border: 1px solid #C4B5FD !important;
+    background: #FFFFFF !important;
+    color: var(--sh-purple-700) !important;
+    border: 1px solid var(--sh-border-2) !important;
+}
+.stButton > button[kind="secondary"]:hover {
+    border-color: var(--sh-gold) !important;
+    color: var(--sh-purple-900) !important;
 }
 
 .stSelectbox [data-baseweb="select"] > div,
 .stTextInput > div > div > input,
 .stTextArea textarea {
     border-radius: 12px !important;
-    border: 1.5px solid #DDD6FE !important;
+    border: 1px solid var(--sh-border-2) !important;
     font-family: inherit !important;
     font-size: 13px !important;
-    background: #FAFAFA !important;
-    transition: border 0.18s !important;
+    background: #FFFFFF !important;
+    transition: all 0.18s !important;
 }
 
 .stSelectbox [data-baseweb="select"]:focus-within > div,
 .stTextInput > div > div > input:focus,
 .stTextArea textarea:focus {
-    border-color: #7C3AED !important;
-    box-shadow: 0 0 0 3px rgba(124,58,237,0.12) !important;
+    border-color: var(--sh-gold) !important;
+    box-shadow: 0 0 0 3px var(--sh-gold-glow) !important;
 }
 
 .stTabs [data-baseweb="tab-list"] {
     gap: 4px;
-    background: #EDE9FE;
+    background: #FFFFFF;
     border-radius: 14px;
-    padding: 5px;
-    border: none;
+    padding: 6px;
+    border: 1px solid var(--sh-border);
+    box-shadow: 0 2px 12px rgba(82,38,158,0.05);
 }
 
 .stTabs [data-baseweb="tab"] {
     border-radius: 10px !important;
     font-weight: 600 !important;
     font-size: 13px !important;
-    color: #5B21B6 !important;
-    padding: 8px 16px !important;
+    color: var(--sh-purple-700) !important;
+    padding: 9px 18px !important;
 }
 
 .stTabs [aria-selected="true"] {
-    background: white !important;
-    box-shadow: 0 2px 8px rgba(109,40,217,0.12) !important;
+    background: linear-gradient(135deg, var(--sh-purple-50), #FFFFFF) !important;
+    color: var(--sh-purple-900) !important;
+    box-shadow: 0 2px 10px rgba(82,38,158,0.10), inset 0 -2px 0 var(--sh-gold) !important;
 }
 
 [data-testid="metric-container"] {
-    background: white;
-    border: 1px solid #EDE9FE;
+    background: #FFFFFF;
+    border: 1px solid var(--sh-border);
     border-radius: 18px;
-    padding: 16px !important;
-    box-shadow: 0 2px 12px rgba(109,40,217,0.06);
+    padding: 18px !important;
+    box-shadow: 0 3px 16px rgba(82,38,158,0.05);
+    border-top: 2px solid var(--sh-gold-soft);
 }
 
-.stCheckbox label, [data-testid="stCheckbox"] label { font-size: 13px !important; }
-.stSpinner > div > div { border-top-color: #7C3AED !important; }
-.stProgress > div > div > div { background: linear-gradient(90deg, #A78BFA, #7C3AED) !important; border-radius: 99px !important; }
+.stCheckbox label, [data-testid="stCheckbox"] label { font-size: 13px !important; color: var(--sh-ink) !important;}
+.stSpinner > div > div { border-top-color: var(--sh-gold) !important; }
+.stProgress > div > div > div { background: linear-gradient(90deg, var(--sh-purple-500), var(--sh-gold)) !important; border-radius: 99px !important; }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #F5F3FF; }
-::-webkit-scrollbar-thumb { background: #C4B5FD; border-radius: 99px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--sh-surface-2); }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--sh-purple-300), var(--sh-gold-soft)); border-radius: 99px; }
 
-.stAlert { border-radius: 16px !important; }
+.stAlert { border-radius: 16px !important; border: 1px solid var(--sh-border) !important; }
 
 .risk-badge {
     display: inline-block;
     border-radius: 20px;
-    padding: 4px 14px;
+    padding: 5px 14px;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
     white-space: nowrap;
+    text-transform: uppercase;
 }
 
 .chat-user {
-    background: linear-gradient(135deg, #5B21B6, #7C3AED);
-    color: white;
+    background: linear-gradient(135deg, var(--sh-purple-900), var(--sh-purple-600));
+    color: #FFFFFF;
     border-radius: 20px 4px 20px 20px;
-    padding: 13px 18px;
+    padding: 14px 18px;
     font-size: 13px;
     line-height: 1.75;
     max-width: 76%;
     margin-left: auto;
     margin-bottom: 14px;
-    box-shadow: 0 3px 12px rgba(124,58,237,0.22);
+    box-shadow: 0 6px 18px rgba(82,38,158,0.22);
+    border: 1px solid rgba(201,162,74,0.35);
 }
 
 .chat-sara {
-    background: #FAF8FF;
-    color: #1E1B4B;
+    background: #FFFFFF;
+    color: var(--sh-ink);
     border-radius: 4px 20px 20px 20px;
-    padding: 13px 18px;
+    padding: 14px 18px;
     font-size: 13px;
     line-height: 1.8;
     max-width: 76%;
-    border: 1px solid #EDE9FE;
+    border: 1px solid var(--sh-border);
     margin-bottom: 14px;
-    box-shadow: 0 2px 8px rgba(109,40,217,0.05);
+    box-shadow: 0 3px 14px rgba(82,38,158,0.06);
+    border-left: 2px solid var(--sh-gold);
 }
 
 [data-testid="stForm"] {
@@ -301,6 +349,14 @@ section[data-testid="stSidebar"] > div {
     background: transparent !important;
     padding: 0 !important;
 }
+
+/* Divisor dorado elegante reutilizable */
+.sh-divider{
+    height:1px; border:0; margin:18px 0;
+    background: linear-gradient(90deg, transparent, var(--sh-gold-soft), transparent);
+}
+
+
 
 a:hover { opacity: 0.88; }
 .block-container { padding-top: 16px !important; }
@@ -777,36 +833,42 @@ with st.sidebar:
 # ── INICIO ────────────────────────────────────────────────────────────────────
 if "🏠" in page:
     st.markdown("""
-    <div style="background:linear-gradient(135deg,#1E1B4B 0%,#312E81 45%,#4C1D95 100%);
-        border-radius:28px;padding:52px 52px;margin-bottom:32px;position:relative;overflow:hidden;color:#fff;">
+    <div style="background:
+            radial-gradient(600px 300px at 90% 10%, rgba(201,162,74,0.22), transparent 60%),
+            linear-gradient(135deg,#1B1340 0%,#2A1565 45%,#52269E 100%);
+        border-radius:28px;padding:54px 52px;margin-bottom:32px;position:relative;overflow:hidden;color:#fff;
+        border:1px solid rgba(201,162,74,0.35);
+        box-shadow:0 20px 60px rgba(42,21,101,0.35), inset 0 1px 0 rgba(255,255,255,0.06);">
         <div style="position:absolute;top:-80px;right:-80px;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,0.04);"></div>
-        <div style="position:absolute;bottom:-60px;right:100px;width:220px;height:220px;border-radius:50%;background:rgba(236,72,153,0.1);"></div>
-        <div style="max-width:600px;position:relative;">
-            <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);
-                border:1px solid rgba(255,255,255,0.18);border-radius:24px;padding:6px 18px;
-                font-size:11px;color:#E9D5FF;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;margin-bottom:24px;">
-                ⚡ Sistema Inteligente · Colombia 2025
+        <div style="position:absolute;bottom:-60px;right:100px;width:220px;height:220px;border-radius:50%;background:rgba(201,162,74,0.10);"></div>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,#E8C46A,transparent);opacity:.7;"></div>
+        <div style="max-width:620px;position:relative;">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.08);
+                border:1px solid rgba(232,196,106,0.45);border-radius:24px;padding:6px 18px;
+                font-size:11px;color:#F5E6B8;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:24px;">
+                ✦ Sistema Inteligente · Colombia 2025
             </div>
-            <h1 style="font-size:46px;font-weight:900;line-height:1.08;margin:0 0 18px;letter-spacing:-1.5px;">
+            <h1 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:54px;font-weight:600;line-height:1.05;margin:0 0 18px;letter-spacing:-1.2px;">
                 Tu seguridad es<br>
-                <span style="background:linear-gradient(90deg,#F0ABFC,#EC4899,#F59E0B);
-                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;">nuestra prioridad</span>
+                <span style="background:linear-gradient(90deg,#F5E6B8,#E8C46A,#C9A24A);
+                    -webkit-background-clip:text;-webkit-text-fill-color:transparent;font-style:italic;">nuestra prioridad</span>
             </h1>
-            <p style="color:#C4B5FD;font-size:15px;line-height:1.85;margin:0 0 32px;">
+            <p style="color:#D8CFEF;font-size:15px;line-height:1.85;margin:0 0 32px;max-width:540px;">
                 Plataforma inteligente de predicción, prevención y apoyo para mujeres en Colombia.
                 Modelos ML entrenados con datos reales de la Policía Nacional.
             </p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <a href="?page=pred" style="background:linear-gradient(135deg,#EC4899,#C026D3);color:#fff;
-                    padding:14px 26px;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;
-                    box-shadow:0 4px 22px rgba(236,72,153,0.45);">📊 Ver Predicciones IA</a>
-                <a href="tel:155" style="background:rgba(255,255,255,0.12);color:#fff;border:1px solid rgba(255,255,255,0.28);
-                    padding:14px 26px;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;">
-                    📞 Línea 155 — Mujer</a>
+                <a href="?page=pred" style="background:linear-gradient(135deg,#E8C46A,#C9A24A);color:#2A1565;
+                    padding:14px 28px;border-radius:14px;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:0.3px;
+                    box-shadow:0 8px 24px rgba(201,162,74,0.45), inset 0 1px 0 rgba(255,255,255,0.4);">✦ Ver Predicciones IA</a>
+                <a href="tel:155" style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(232,196,106,0.45);
+                    padding:14px 28px;border-radius:14px;font-size:14px;font-weight:700;text-decoration:none;">
+                    Línea 155 — Mujer</a>
             </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
+
 
     c1, c2, c3, c4 = st.columns(4)
     for col, icon, val, label, color in [
@@ -1974,6 +2036,7 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                         <a href="tel:123" style="background:#DC2626;color:#fff;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">🚨 123 Policía</a>
                     </div>
                 </div>""", unsafe_allow_html=True)
+
 # ── EMERGENCIAS ────────────────────────────────────────────────────────────────
 elif "🚨" in page:
     st.markdown("""
