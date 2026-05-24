@@ -1052,11 +1052,12 @@ elif "📊" in page:
                 bg = cfg["color"] + "12" if is_sel else "#FAFAFA"
                 border = cfg["color"] + "50" if is_sel else "#EDE9FE"
                 marker = " ← seleccionado" if is_sel else ""
+                fw = "800" if is_sel else "600"
                 st.markdown(f"""
                 <div style="padding:12px 16px;background:{bg};border-radius:14px;
                     border:1.5px solid {border};margin-bottom:8px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
-                        <span style="font-size:12px;color:#1E1B4B;font-weight:{'800' if is_sel else '600'};">{item['label']}<span style="font-size:10px;color:{cfg['color']};font-style:italic;">{marker}</span></span>
+                        <span style="font-size:12px;color:#1E1B4B;font-weight:{fw};">{item['label']}<span style="font-size:10px;color:{cfg['color']};font-style:italic;">{marker}</span></span>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span style="font-size:13px;font-weight:900;color:{cfg['color']};">{item['value']}</span>
                             {risk_badge(item['risk'], small=True)}
@@ -1641,7 +1642,10 @@ elif "✈️" in page:
             else:
                 safety = {"label": "Alto Riesgo", "color": "#DC2626", "bg": "linear-gradient(135deg,#FEF2F2,#FECDD3)", "icon": "🔴", "stars": 1}
 
-            stars_html = "".join([f'<span style="font-size:20px;color:{"#F59E0B" if i<safety["stars"] else "#E2E8F0"};">★</span>' for i in range(5)])
+            stars_html = ""
+            for i in range(5):
+                star_color = "#F59E0B" if i < safety["stars"] else "#E2E8F0"
+                stars_html += f'<span style="font-size:20px;color:{star_color};">★</span>'
             st.markdown(f"""<div style="background:{safety['bg']};border:2px solid {safety['color']}30;
                 border-radius:24px;padding:28px 34px;margin-bottom:24px;display:flex;align-items:center;gap:24px;">
                 <div style="font-size:56px;">{safety['icon']}</div>
@@ -1798,11 +1802,15 @@ elif "📋" in page:
                 s_bg, s_color, s_text = "#5B21B6","#fff",str(si)
             else:
                 s_bg, s_color, s_text = "#EDE9FE","#A78BFA",str(si)
-            step_html += f'<div style="display:flex;align-items:center;{"flex:1;" if si < len(steps) else ""}">'
+            step_flex = "flex:1;" if si < len(steps) else ""
+            step_fw = "700" if si == step else "500"
+            step_tc = "#5B21B6" if si == step else "#6B7280"
+            step_bar_bg = "#059669" if si < step else "#EDE9FE"
+            step_html += f'<div style="display:flex;align-items:center;{step_flex}">'
             step_html += f'<div style="width:30px;height:30px;border-radius:50%;background:{s_bg};color:{s_color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">{s_text}</div>'
-            step_html += f'<span style="font-size:12px;font-weight:{"700" if si==step else "500"};color:{"#5B21B6" if si==step else "#6B7280"};margin-left:8px;white-space:nowrap;">{sl}</span>'
+            step_html += f'<span style="font-size:12px;font-weight:{step_fw};color:{step_tc};margin-left:8px;white-space:nowrap;">{sl}</span>'
             if si < len(steps):
-                step_html += f'<div style="flex:1;height:2px;background:{"#059669" if si<step else "#EDE9FE"};margin:0 12px;"></div>'
+                step_html += f'<div style="flex:1;height:2px;background:{step_bar_bg};margin:0 12px;"></div>'
             step_html += '</div>'
         step_html += '</div>'
         st.markdown(step_html, unsafe_allow_html=True)
@@ -1852,7 +1860,8 @@ elif "📋" in page:
                 d_desc = st.text_area("Describe lo que ocurrió con detalle:", height=160,
                     placeholder="Describe con el mayor detalle posible. Todo es completamente confidencial...", key="d_desc")
                 char_color = "#059669" if len(d_desc) > 50 else "#D97706"
-                st.markdown(f'<div style="font-size:11px;color:{char_color};margin-top:-6px;margin-bottom:16px;font-weight:600;">{len(d_desc)} caracteres{"  ✓ Descripción suficiente" if len(d_desc)>50 else " — agrega más detalles"}</div>', unsafe_allow_html=True)
+                char_msg = "  ✓ Descripción suficiente" if len(d_desc) > 50 else " — agrega más detalles"
+                st.markdown(f'<div style="font-size:11px;color:{char_color};margin-top:-6px;margin-bottom:16px;font-weight:600;">{len(d_desc)} caracteres{char_msg}</div>', unsafe_allow_html=True)
                 st.markdown('<div style="font-size:12px;font-weight:700;color:#5B21B6;margin-bottom:8px;">📎 Evidencia (fotos, audio, video)</div>', unsafe_allow_html=True)
                 uploaded = st.file_uploader("Adjunta archivos de evidencia (opcional):", accept_multiple_files=True,
                     type=["jpg","jpeg","png","mp4","mp3","pdf","wav"], label_visibility="collapsed", key="d_files")
@@ -1929,7 +1938,8 @@ Opciones seleccionadas: {', '.join(d_opts) if d_opts else 'Ninguna'}"""
                 ("🚨","URI Fiscalía 24h","Denuncia urgente sin cita","tel:018000919748","#DC2626"),
             ]
             for icon_e, name_e, desc_e, href_e, color_e in entidades_d:
-                st.markdown(f"""<a href="{href_e}" target="{'_blank' if href_e.startswith('http') else '_self'}" style="text-decoration:none;">
+                link_target = '_blank' if href_e.startswith('http') else '_self'
+                st.markdown(f"""<a href="{href_e}" target="{link_target}" style="text-decoration:none;">
                 <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #EDE9FE;">
                     <div style="width:34px;height:34px;background:linear-gradient(135deg,{color_e}18,{color_e}10);border-radius:10px;
                         display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">{icon_e}</div>
@@ -2575,7 +2585,8 @@ elif "🚔" in page:
             st.markdown("<div style='margin-top:12px;display:flex;flex-direction:column;gap:8px;'>", unsafe_allow_html=True)
 
             call_label = f"📞 Llamar ahora: {sel_e['phone']}" if sel_e['href'].startswith('tel:') else "🌐 Visitar sitio web"
-            st.markdown(f"""<a href="{sel_e['href']}" {'target="_blank"' if sel_e['href'].startswith('http') else ''} style="text-decoration:none;display:block;">
+            call_target = 'target="_blank"' if sel_e['href'].startswith('http') else ''
+            st.markdown(f"""<a href="{sel_e['href']}" {call_target} style="text-decoration:none;display:block;">
                 <div style="width:100%;background:linear-gradient(135deg,{sel_e['color']},{sel_e['color']}BB);color:#fff;border-radius:14px;
                     padding:14px;text-align:center;font-size:13px;font-weight:900;
                     box-shadow:0 4px 16px {sel_e['color']}44;letter-spacing:0.3px;">{call_label}</div>
