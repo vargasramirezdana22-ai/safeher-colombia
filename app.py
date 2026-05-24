@@ -1052,12 +1052,11 @@ elif "📊" in page:
                 bg = cfg["color"] + "12" if is_sel else "#FAFAFA"
                 border = cfg["color"] + "50" if is_sel else "#EDE9FE"
                 marker = " ← seleccionado" if is_sel else ""
-                fw = "800" if is_sel else "600"
                 st.markdown(f"""
                 <div style="padding:12px 16px;background:{bg};border-radius:14px;
                     border:1.5px solid {border};margin-bottom:8px;">
                     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
-                        <span style="font-size:12px;color:#1E1B4B;font-weight:{fw};">{item['label']}<span style="font-size:10px;color:{cfg['color']};font-style:italic;">{marker}</span></span>
+                        <span style="font-size:12px;color:#1E1B4B;font-weight:{'800' if is_sel else '600'};">{item['label']}<span style="font-size:10px;color:{cfg['color']};font-style:italic;">{marker}</span></span>
                         <div style="display:flex;align-items:center;gap:8px;">
                             <span style="font-size:13px;font-weight:900;color:{cfg['color']};">{item['value']}</span>
                             {risk_badge(item['risk'], small=True)}
@@ -1642,10 +1641,7 @@ elif "✈️" in page:
             else:
                 safety = {"label": "Alto Riesgo", "color": "#DC2626", "bg": "linear-gradient(135deg,#FEF2F2,#FECDD3)", "icon": "🔴", "stars": 1}
 
-            stars_html = ""
-            for i in range(5):
-                star_color = "#F59E0B" if i < safety["stars"] else "#E2E8F0"
-                stars_html += f'<span style="font-size:20px;color:{star_color};">★</span>'
+            stars_html = "".join([f'<span style="font-size:20px;color:{"#F59E0B" if i<safety["stars"] else "#E2E8F0"};">★</span>' for i in range(5)])
             st.markdown(f"""<div style="background:{safety['bg']};border:2px solid {safety['color']}30;
                 border-radius:24px;padding:28px 34px;margin-bottom:24px;display:flex;align-items:center;gap:24px;">
                 <div style="font-size:56px;">{safety['icon']}</div>
@@ -1802,15 +1798,11 @@ elif "📋" in page:
                 s_bg, s_color, s_text = "#5B21B6","#fff",str(si)
             else:
                 s_bg, s_color, s_text = "#EDE9FE","#A78BFA",str(si)
-            step_flex = "flex:1;" if si < len(steps) else ""
-            step_fw = "700" if si == step else "500"
-            step_tc = "#5B21B6" if si == step else "#6B7280"
-            step_bar_bg = "#059669" if si < step else "#EDE9FE"
-            step_html += f'<div style="display:flex;align-items:center;{step_flex}">'
+            step_html += f'<div style="display:flex;align-items:center;{"flex:1;" if si < len(steps) else ""}">'
             step_html += f'<div style="width:30px;height:30px;border-radius:50%;background:{s_bg};color:{s_color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0;">{s_text}</div>'
-            step_html += f'<span style="font-size:12px;font-weight:{step_fw};color:{step_tc};margin-left:8px;white-space:nowrap;">{sl}</span>'
+            step_html += f'<span style="font-size:12px;font-weight:{"700" if si==step else "500"};color:{"#5B21B6" if si==step else "#6B7280"};margin-left:8px;white-space:nowrap;">{sl}</span>'
             if si < len(steps):
-                step_html += f'<div style="flex:1;height:2px;background:{step_bar_bg};margin:0 12px;"></div>'
+                step_html += f'<div style="flex:1;height:2px;background:{"#059669" if si<step else "#EDE9FE"};margin:0 12px;"></div>'
             step_html += '</div>'
         step_html += '</div>'
         st.markdown(step_html, unsafe_allow_html=True)
@@ -1860,8 +1852,7 @@ elif "📋" in page:
                 d_desc = st.text_area("Describe lo que ocurrió con detalle:", height=160,
                     placeholder="Describe con el mayor detalle posible. Todo es completamente confidencial...", key="d_desc")
                 char_color = "#059669" if len(d_desc) > 50 else "#D97706"
-                char_msg = "  ✓ Descripción suficiente" if len(d_desc) > 50 else " — agrega más detalles"
-                st.markdown(f'<div style="font-size:11px;color:{char_color};margin-top:-6px;margin-bottom:16px;font-weight:600;">{len(d_desc)} caracteres{char_msg}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="font-size:11px;color:{char_color};margin-top:-6px;margin-bottom:16px;font-weight:600;">{len(d_desc)} caracteres{"  ✓ Descripción suficiente" if len(d_desc)>50 else " — agrega más detalles"}</div>', unsafe_allow_html=True)
                 st.markdown('<div style="font-size:12px;font-weight:700;color:#5B21B6;margin-bottom:8px;">📎 Evidencia (fotos, audio, video)</div>', unsafe_allow_html=True)
                 uploaded = st.file_uploader("Adjunta archivos de evidencia (opcional):", accept_multiple_files=True,
                     type=["jpg","jpeg","png","mp4","mp3","pdf","wav"], label_visibility="collapsed", key="d_files")
@@ -1938,8 +1929,7 @@ Opciones seleccionadas: {', '.join(d_opts) if d_opts else 'Ninguna'}"""
                 ("🚨","URI Fiscalía 24h","Denuncia urgente sin cita","tel:018000919748","#DC2626"),
             ]
             for icon_e, name_e, desc_e, href_e, color_e in entidades_d:
-                link_target = '_blank' if href_e.startswith('http') else '_self'
-                st.markdown(f"""<a href="{href_e}" target="{link_target}" style="text-decoration:none;">
+                st.markdown(f"""<a href="{href_e}" target="{'_blank' if href_e.startswith('http') else '_self'}" style="text-decoration:none;">
                 <div style="display:flex;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid #EDE9FE;">
                     <div style="width:34px;height:34px;background:linear-gradient(135deg,{color_e}18,{color_e}10);border-radius:10px;
                         display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">{icon_e}</div>
@@ -2138,19 +2128,9 @@ FORMATO: Español cálido y cercano, máx 200 palabras, emojis con moderación (
 
 # ── AYUDA CERCANA ─────────────────────────────────────────────────────────────
 elif "🚔" in page:
-    import unicodedata, urllib.parse
-
-    def normalizar(texto):
-        """Quita tildes y pasa a minúsculas para comparación flexible."""
-        texto = texto.lower().strip()
-        return "".join(
-            c for c in unicodedata.normalize("NFD", texto)
-            if unicodedata.category(c) != "Mn"
-        )
-
     # ── Base de datos de entidades por ciudad colombiana ──────────────────────
     ENTIDADES_COL = {
-        "bogota": [
+        "bogotá": [
             {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Centro","dir":"Carrera 9 #15-55, Bogotá","barrio":"La Candelaria","lat":-74.0721,"lon":4.5981,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Estación de Policía Metropolitana. Denuncia inmediata y medidas de protección.","transporte":"TransMilenio: Portal Centro (5 min) · Bus: múltiples rutas Cra 10"},
             {"tipo":"Hospital","icon":"🏥","nom":"Hospital La Victoria","dir":"Calle 1 #18-98, Bogotá","barrio":"Santa Inés","lat":-74.0927,"lon":4.5883,"color":"#059669","href":"tel:3649900","phone":"364-9900","horario":"24/7 Urgencias","desc":"Hospital público de alta complejidad. Urgencias, medicina forense, apoyo psicológico para víctimas.","transporte":"TransMilenio: Av. Jiménez (10 min caminando) · Bus: Cll 1"},
             {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Bogotá 24h","dir":"Calle 8 #69B-41, Bogotá","barrio":"Paloquemao","lat":-74.0980,"lon":4.6250,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita previa.","transporte":"TransMilenio: Paloquemao (3 min caminando) · Bus: Av. Calle 6"},
@@ -2158,7 +2138,7 @@ elif "🚔" in page:
             {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Benposta","dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial","lat":-74.0800,"lon":4.6200,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Alojamiento seguro y gratuito para mujeres víctimas de violencia y sus hijos e hijas.","transporte":"Llama al 155 (gratuito). Coordinan transporte seguro y discreto"},
             {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Bogotá","dir":"Carrera 52 #42-43, Bogotá","barrio":"Paloquemao","lat":-74.0990,"lon":4.6330,"color":"#8B5CF6","href":"tel:3159700","phone":"315-9700","horario":"Lun–Vie 8am–5pm","desc":"Centro de Atención Integral a Víctimas de Violencia Sexual. Atención psicológica, jurídica y social gratuita.","transporte":"TransMilenio: Paloquemao (6 min caminando)"},
         ],
-        "medellin": [
+        "medellín": [
             {"tipo":"Policía","icon":"🚔","nom":"CAI Centro Medellín","dir":"Carrera 45 #54-20, Medellín","barrio":"Centro","lat":-75.5742,"lon":6.2442,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Centro de Atención Inmediata. Atención permanente para denuncias y emergencias policiales.","transporte":"Metro: Prado (5 min caminando) · Bus: múltiples rutas Cra 45"},
             {"tipo":"Hospital","icon":"🏥","nom":"Hospital General de Medellín","dir":"Calle 24 #29-6, Medellín","barrio":"Bomboná","lat":-75.5730,"lon":6.2358,"color":"#059669","href":"tel:4411227","phone":"444-1227","horario":"24/7 Urgencias","desc":"Hospital público con urgencias completas, medicina forense y apoyo psicológico para víctimas de violencia.","transporte":"Bus: rutas por Cll 24 · Metro: Industriales (12 min caminando)"},
             {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Medellín 24h","dir":"Calle 57 #45-129, Medellín","barrio":"Niquitao","lat":-75.5690,"lon":6.2570,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita.","transporte":"Metro: Hospital (10 min caminando) · Bus: Cll 57"},
@@ -2196,60 +2176,40 @@ elif "🚔" in page:
         {"tipo":"Línea Nacional","icon":"👨‍👩‍👧","nom":"ICBF — Línea 141","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#059669","href":"tel:141","phone":"141","horario":"24/7 Gratuita","desc":"Instituto Colombiano de Bienestar Familiar. Protección familiar, menores en riesgo, orientación a mujeres.","transporte":"Llama al 141 desde cualquier teléfono — sin costo"},
     ]
 
-    # ── Componente GPS automático — captura coords y las pasa por query param ─
-    # Usamos st.components.v1.html con postMessage para enviar lat/lon a Streamlit
-    gps_component = st.components.v1.html("""
-    <div id="gps-status" style="font-family:sans-serif;font-size:12px;color:#6B7280;padding:4px 0;"></div>
+    # ── Inyectar JavaScript para geolocalización ─────────────────────────────
+    st.components.v1.html("""
     <script>
     (function() {
-        var status = document.getElementById('gps-status');
-        if (!navigator.geolocation) {
-            status.textContent = '⚠️ Tu navegador no soporta geolocalización.';
-            return;
+        function sendLocation(lat, lon, city) {
+            // Almacenar en sessionStorage para que Streamlit lo lea vía query params
+            const msg = JSON.stringify({lat, lon, city});
+            window.parent.postMessage({type: 'streamlit:setComponentValue', value: msg}, '*');
         }
-        status.textContent = '📡 Detectando ubicación...';
-        navigator.geolocation.getCurrentPosition(
-            function(pos) {
-                var lat = pos.coords.latitude;
-                var lon = pos.coords.longitude;
-                status.textContent = '✅ Ubicación detectada (' + lat.toFixed(4) + ', ' + lon.toFixed(4) + ')';
-                // Enviar coords a Streamlit via postMessage
-                window.parent.postMessage({
-                    type: 'streamlit:setComponentValue',
-                    value: JSON.stringify({lat: lat, lon: lon})
-                }, '*');
-            },
-            function(err) {
-                var msgs = {1:'Permiso denegado por el usuario.',2:'No se pudo obtener la ubicación.',3:'Tiempo de espera agotado.'};
-                status.textContent = '📍 ' + (msgs[err.code] || 'Error de geolocalización.') + ' Escribe tu ciudad manualmente.';
-                window.parent.postMessage({type: 'streamlit:setComponentValue', value: JSON.stringify({lat: null, lon: null})}, '*');
-            },
-            {enableHighAccuracy: true, timeout: 12000, maximumAge: 30000}
-        );
+        if (!window._geoRequested) {
+            window._geoRequested = true;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(pos) {
+                        const lat = pos.coords.latitude;
+                        const lon = pos.coords.longitude;
+                        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
+                            .then(r => r.json())
+                            .then(data => {
+                                const city = data.address.city || data.address.town || data.address.county || 'Colombia';
+                                sendLocation(lat, lon, city);
+                            })
+                            .catch(() => sendLocation(lat, lon, 'Ubicación detectada'));
+                    },
+                    function(err) { console.log('Geolocation error:', err); },
+                    {enableHighAccuracy: true, timeout: 10000}
+                );
+            }
+        }
     })();
     </script>
-    """, height=30)
+    """, height=0)
 
-    # Leer coordenadas enviadas por el componente
-    gps_lat, gps_lon, gps_city = None, None, None
-    if gps_component and isinstance(gps_component, str):
-        try:
-            gps_data = json.loads(gps_component)
-            gps_lat = gps_data.get("lat")
-            gps_lon = gps_data.get("lon")
-        except Exception:
-            pass
-
-    # Si tenemos coordenadas nuevas, guardarlas en session_state
-    if gps_lat is not None and gps_lon is not None:
-        st.session_state["gps_lat"] = gps_lat
-        st.session_state["gps_lon"] = gps_lon
-
-    # Recuperar coords guardadas
-    saved_lat = st.session_state.get("gps_lat")
-    saved_lon = st.session_state.get("gps_lon")
-
-    # ── Cabecera ──────────────────────────────────────────────────────────────
+    # ── Cabecera con botón de ubicación ──────────────────────────────────────
     st.markdown("""
     <div style="margin-bottom:24px;">
         <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;
@@ -2257,7 +2217,7 @@ elif "🚔" in page:
             color:#1D4ED8;font-weight:700;margin-bottom:12px;">🚔 AYUDA CERCANA</div>
         <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 8px;letter-spacing:-0.5px;">Ayuda Cercana</h1>
         <p style="color:#6B7280;font-size:14px;margin:0;">
-            Detecta tu ubicación automáticamente y encuentra la ayuda más cercana en un radio de 20 km — policía, hospitales, fiscalía, refugios.
+            Detecta tu ubicación automáticamente y encuentra la ayuda más cercana — policía, hospitales, fiscalía, refugios.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -2284,190 +2244,68 @@ elif "🚔" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Campo de ciudad (solo si no hay GPS) ─────────────────────────────────
-    city_input = ""
-    use_gps = saved_lat is not None and saved_lon is not None
+    # ── Selector de ciudad con opción de geolocalización ─────────────────────
+    geo_col, city_col = st.columns([1, 2])
+    with geo_col:
+        if st.button("📡 Detectar mi ubicación", type="primary", use_container_width=True, key="geo_btn"):
+            st.session_state["geo_requested"] = True
+            st.markdown("""
+            <script>
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&format=json&accept-language=es')
+                    .then(r => r.json())
+                    .then(d => {
+                        const city = (d.address.city || d.address.town || d.address.county || 'bogotá').toLowerCase();
+                        const input = window.parent.document.querySelector('input[data-testid="stTextInput"]');
+                        if(input){input.value=city;input.dispatchEvent(new Event('input',{bubbles:true}));}
+                    });
+                }, null, {enableHighAccuracy:true,timeout:8000});
+            }
+            </script>
+            """, unsafe_allow_html=True)
+            st.info("📡 Solicitando ubicación al dispositivo... Si el navegador lo pide, acepta el permiso.", icon="📍")
 
-    if not use_gps:
+    with city_col:
         city_input = st.text_input(
-            "📍 Escribe tu ciudad (o espera a que se detecte automáticamente):",
-            value=st.session_state.get("detected_city", ""),
+            "📍 O escribe tu ciudad:",
+            value=st.session_state.get("detected_city", "Medellín"),
             key="ayuda_city",
-            placeholder="Ej: bogota, medellin, cali, barranquilla, bucaramanga..."
+            placeholder="Ej: Bogotá, Cali, Barranquilla, Bucaramanga..."
         )
 
-    # ── Normalizar texto escrito por el usuario ───────────────────────────────
-    city_key = normalizar(city_input)
-
-    # Buscar coincidencia flexible en el diccionario interno
+    # Normalizar ciudad para buscar en el diccionario
+    city_key = city_input.lower().strip()
+    city_key = city_key.replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u")
+    # Detectar ciudad aproximada
     city_match = None
     for k in ENTIDADES_COL.keys():
-        k_norm = normalizar(k)
-        if k_norm in city_key or city_key in k_norm:
+        if k in city_key or city_key in k:
             city_match = k
             break
     if not city_match:
         for k in ENTIDADES_COL.keys():
-            if any(w in city_key for w in normalizar(k).split()):
+            if any(word in city_key for word in k.split()):
                 city_match = k
                 break
 
     entidades_ciudad = ENTIDADES_COL.get(city_match, [])
     entidades = entidades_ciudad + ENTIDADES_NACIONALES
 
-    # ── Helpers de distancia ──────────────────────────────────────────────────
-    def haversine(lat1, lon1, lat2, lon2):
-        R = 6371
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-
-    def buscar_overpass(lat, lon, radio_m=5000):
-        """
-        Consulta Overpass API para encontrar hospitales, policía, comisarías,
-        centros de salud y refugios reales cerca de las coordenadas dadas.
-        Devuelve lista de entidades en el mismo formato que ENTIDADES_COL.
-        """
-        import requests
-        # Tipos de lugares relevantes para seguridad de la mujer
-        query = f"""
-        [out:json][timeout:25];
-        (
-          node["amenity"="hospital"](around:{radio_m},{lat},{lon});
-          way["amenity"="hospital"](around:{radio_m},{lat},{lon});
-          node["amenity"="clinic"](around:{radio_m},{lat},{lon});
-          node["amenity"="health_post"](around:{radio_m},{lat},{lon});
-          node["amenity"="police"](around:{radio_m},{lat},{lon});
-          way["amenity"="police"](around:{radio_m},{lat},{lon});
-          node["amenity"="social_facility"](around:{radio_m},{lat},{lon});
-          node["office"="government"](around:{radio_m},{lat},{lon});
-          node["amenity"="fire_station"](around:{radio_m},{lat},{lon});
-          node["amenity"="pharmacy"](around:{radio_m},{lat},{lon});
-        );
-        out center tags;
-        """
-        try:
-            resp = requests.post(
-                "https://overpass-api.de/api/interpreter",
-                data={"data": query},
-                timeout=20
-            )
-            if resp.status_code != 200:
-                return []
-            data = resp.json()
-        except Exception:
-            return []
-
-        # Mapeo de amenity → tipo/icono/color de la app
-        TIPO_MAP = {
-            "hospital":        ("Hospital",   "🏥", "#059669"),
-            "clinic":          ("Hospital",   "🏥", "#059669"),
-            "health_post":     ("Hospital",   "🏥", "#059669"),
-            "police":          ("Policía",    "🚔", "#1D4ED8"),
-            "social_facility": ("Psicología", "🧠", "#8B5CF6"),
-            "fire_station":    ("Bomberos",   "🚒", "#D97706"),
-            "pharmacy":        ("Farmacia",   "💊", "#0891B2"),
-            "government":      ("Entidad",    "🏛️", "#7C3AED"),
-        }
-
-        results = []
-        seen = set()
-        for el in data.get("elements", []):
-            tags = el.get("tags", {})
-            nombre = (tags.get("name") or tags.get("name:es") or "").strip()
-            if not nombre or nombre in seen:
-                continue
-            seen.add(nombre)
-
-            # Coordenadas — los ways tienen "center"
-            if el["type"] == "node":
-                e_lat, e_lon = el.get("lat"), el.get("lon")
-            else:
-                center = el.get("center", {})
-                e_lat, e_lon = center.get("lat"), center.get("lon")
-            if not e_lat or not e_lon:
-                continue
-
-            amenity = tags.get("amenity") or tags.get("office", "")
-            tipo, icon, color = TIPO_MAP.get(amenity, ("Entidad", "🏛️", "#6B7280"))
-
-            dist_km = haversine(lat, lon, e_lat, e_lon)
-            direccion = tags.get("addr:street", "")
-            if tags.get("addr:housenumber"):
-                direccion += " #" + tags["addr:housenumber"]
-            if not direccion:
-                direccion = f"{e_lat:.5f}, {e_lon:.5f}"
-
-            barrio = tags.get("addr:suburb") or tags.get("addr:neighbourhood") or tags.get("addr:city") or ""
-            telefono = tags.get("phone") or tags.get("contact:phone") or tags.get("contact:mobile") or "Ver Maps"
-            telefono = telefono.replace(" ", "").replace("-", "") if telefono != "Ver Maps" else telefono
-            href = f"tel:{telefono}" if telefono not in ("Ver Maps", "") else f"https://www.google.com/maps?q={e_lat},{e_lon}"
-            horario = tags.get("opening_hours") or "Consultar"
-            web = tags.get("website") or tags.get("contact:website") or ""
-
-            results.append({
-                "tipo":       tipo,
-                "icon":       icon,
-                "nom":        nombre,
-                "dir":        direccion,
-                "barrio":     barrio,
-                "lat":        e_lat,   # aquí sí están correctos (Overpass devuelve lat/lon bien)
-                "lon":        e_lon,
-                "_real_lat":  e_lat,
-                "_real_lon":  e_lon,
-                "_dist_km":   round(dist_km, 1),
-                "color":      color,
-                "href":       href,
-                "phone":      telefono if telefono != "Ver Maps" else "Ver Maps",
-                "horario":    horario,
-                "desc":       f"{tipo} encontrado en OpenStreetMap. Distancia aproximada: {dist_km:.1f} km.",
-                "transporte": f"A {dist_km:.1f} km de tu ubicación actual.",
-                "_overpass":  True,
-                "_web":       web,
-            })
-
-        results.sort(key=lambda x: x["_dist_km"])
-        return results
-
-    # ── Mostrar estado de ubicación ───────────────────────────────────────────
-    if use_gps:
-        st.success(f"📡 Ubicación GPS activa — buscando lugares reales cercanos en OpenStreetMap.", icon="✅")
-
-        cache_key = f"overpass_{saved_lat:.4f}_{saved_lon:.4f}"
-        if cache_key not in st.session_state:
-            with st.spinner("🔍 Buscando hospitales, policía y entidades cercanas en tiempo real..."):
-                st.session_state[cache_key] = buscar_overpass(saved_lat, saved_lon, radio_m=5000)
-
-        entidades_cercanas = st.session_state[cache_key]
-        entidades = entidades_cercanas + ENTIDADES_NACIONALES
-
-        if entidades_cercanas:
-            st.markdown(
-                f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
-                f'📍 <strong style="color:#1E1B4B;">{len(entidades_cercanas)}</strong> lugares reales encontrados '
-                f'en un radio de 5 km · Fuente: OpenStreetMap</div>',
-                unsafe_allow_html=True
-            )
-        else:
-            st.warning("📍 No encontramos lugares en OpenStreetMap cerca de tu posición. Intenta ampliar la búsqueda o escribe tu ciudad.", icon="ℹ️")
-    elif city_input.strip():
-        if not entidades_ciudad:
-            st.warning(
-                f"📍 No tenemos entidades específicas para **{city_input}** aún. "
-                "Mostrando líneas nacionales disponibles para toda Colombia. "
-                "Llama al **155** para que te orienten a la entidad más cercana.",
-                icon="ℹ️"
-            )
-        else:
-            st.markdown(
-                f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
-                f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
-                f'<strong style="color:#1E1B4B;">{city_input.strip().title()}</strong> + líneas nacionales</div>',
-                unsafe_allow_html=True
-            )
+    if not entidades_ciudad:
+        st.warning(
+            f"📍 No tenemos entidades específicas para **{city_input}** aún. "
+            "Mostrando líneas nacionales disponibles para toda Colombia. "
+            "Llama al **155** para que te orienten a la entidad más cercana.",
+            icon="ℹ️"
+        )
     else:
-        st.info("📡 Esperando permiso de ubicación del navegador, o escribe tu ciudad arriba.", icon="📍")
+        st.markdown(
+            f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
+            f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
+            f'<strong style="color:#1E1B4B;">{city_input}</strong> + líneas nacionales</div>',
+            unsafe_allow_html=True
+        )
 
     # ── Filtro por tipo ───────────────────────────────────────────────────────
     filter_tipo = st.selectbox(
@@ -2488,23 +2326,6 @@ elif "🚔" in page:
                 border = f"2.5px solid {e['color']}" if is_sel else "1.5px solid #EDE9FE"
                 shadow = f"0 8px 28px {e['color']}30" if is_sel else "0 2px 12px rgba(109,40,217,0.07)"
                 bg = f"linear-gradient(135deg,{e['color']}08,#fff)" if is_sel else "#fff"
-
-                # Pre-calcular todos los valores antes del markdown
-                dir_short = e['dir'][:55] + ("..." if len(e['dir']) > 55 else "")
-                phone_badge = (f'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 {e["phone"]}</div>'
-                               if e['phone'] not in ('Presencial', 'Ver Maps') else '')
-                dist_badge = (f'<div style="background:#EFF6FF;color:#1D4ED8;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📏 {e["_dist_km"]} km</div>'
-                              if e.get("_dist_km") else '')
-                call_label = "📞 Llamar" if e['href'].startswith('tel:') else "🌐 Web"
-
-                if e.get('lat', 0) != 0:
-                    if e.get('_overpass'):
-                        maps_url = f"https://www.google.com/maps?q={e['_real_lat']},{e['_real_lon']}"
-                    else:
-                        maps_url = f"https://www.google.com/maps?q={e['lon']},{e['lat']}"
-                else:
-                    maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote(e['nom'] + ' ' + e['dir'])
-
                 st.markdown(f"""
                 <div style="background:{bg};border:{border};border-radius:20px;
                     padding:18px;margin-bottom:12px;box-shadow:{shadow};cursor:pointer;transition:all 0.2s;">
@@ -2516,18 +2337,19 @@ elif "🚔" in page:
                     </div>
                     <div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:4px;line-height:1.3;">{e['nom']}</div>
                     <div style="font-size:10px;color:#A78BFA;margin-bottom:4px;font-weight:600;">📍 {e['barrio']}</div>
-                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{dir_short}</div>
+                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
                     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
                         <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
-                        {phone_badge}
-                        {dist_badge}
+                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] != 'Presencial' else ''}
                     </div>
                     <div style="display:flex;gap:6px;">
                         <a href="{e['href']}" style="text-decoration:none;flex:1;">
                             <div style="background:linear-gradient(135deg,{e['color']},{e['color']}CC);color:#fff;border-radius:10px;
-                                padding:8px;text-align:center;font-size:11px;font-weight:800;">{call_label}</div>
+                                padding:8px;text-align:center;font-size:11px;font-weight:800;">
+                                {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
+                            </div>
                         </a>
-                        <a href="{maps_url}" target="_blank" style="text-decoration:none;flex:1;">
+                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+')}" target="_blank" style="text-decoration:none;flex:1;">
                             <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
                         </a>
@@ -2585,33 +2407,17 @@ elif "🚔" in page:
             st.markdown("<div style='margin-top:12px;display:flex;flex-direction:column;gap:8px;'>", unsafe_allow_html=True)
 
             call_label = f"📞 Llamar ahora: {sel_e['phone']}" if sel_e['href'].startswith('tel:') else "🌐 Visitar sitio web"
-            call_target = 'target="_blank"' if sel_e['href'].startswith('http') else ''
-            st.markdown(f"""<a href="{sel_e['href']}" {call_target} style="text-decoration:none;display:block;">
+            st.markdown(f"""<a href="{sel_e['href']}" {'target="_blank"' if sel_e['href'].startswith('http') else ''} style="text-decoration:none;display:block;">
                 <div style="width:100%;background:linear-gradient(135deg,{sel_e['color']},{sel_e['color']}BB);color:#fff;border-radius:14px;
                     padding:14px;text-align:center;font-size:13px;font-weight:900;
                     box-shadow:0 4px 16px {sel_e['color']}44;letter-spacing:0.3px;">{call_label}</div>
             </a>""", unsafe_allow_html=True)
 
-            if sel_e.get('lat', 0) != 0:
-                # Overpass entries tienen _real_lat/_real_lon correctos
-                # Entidades hardcodeadas tienen lat/lon invertidos
-                if sel_e.get("_overpass"):
-                    real_lat = sel_e["_real_lat"]
-                    real_lon = sel_e["_real_lon"]
-                else:
-                    real_lat = sel_e['lon']
-                    real_lon = sel_e['lat']
-                maps_url_pin   = f"https://www.google.com/maps?q={real_lat},{real_lon}"
-                maps_url_dir   = f"https://www.google.com/maps/dir/?api=1&destination={real_lat},{real_lon}&travelmode=transit"
-                maps_url_walk  = f"https://www.google.com/maps/dir/?api=1&destination={real_lat},{real_lon}&travelmode=walking"
+            if sel_e['lat'] != 0:
+                maps_url_dir = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=transit"
+                maps_url_walk = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=walking"
                 st.markdown(f"""
-                <a href="{maps_url_pin}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
-                    <div style="width:100%;background:#EFF6FF;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
-                        padding:12px;text-align:center;font-size:12px;font-weight:800;">
-                        📍 Ver ubicación exacta en Maps
-                    </div>
-                </a>
-                <a href="{maps_url_dir}" target="_blank" style="text-decoration:none;display:block;margin-top:6px;">
+                <a href="{maps_url_dir}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
                     <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
                         padding:12px;text-align:center;font-size:12px;font-weight:800;">
                         🚌 Cómo llegar — Transporte público
@@ -2625,7 +2431,7 @@ elif "🚔" in page:
                 </a>
                 """, unsafe_allow_html=True)
             else:
-                maps_url_search = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(sel_e['nom'] + ' ' + sel_e['dir'])}"
+                maps_url_search = f"https://www.google.com/maps/search/?api=1&query={sel_e['nom'].replace(' ', '+')}"
                 st.markdown(f"""<a href="{maps_url_search}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
                     <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
                         padding:12px;text-align:center;font-size:12px;font-weight:800;">🗺️ Ver en Google Maps</div>
@@ -2636,7 +2442,7 @@ elif "🚔" in page:
             # Instrucciones con IA
             if st.button("🤖 Instrucciones detalladas con IA", key="directions_btn", use_container_width=True):
                 with st.spinner("Generando ruta personalizada..."):
-                    prompt_ciudad = city_input.strip() if city_input.strip() else ("mi ubicación actual" if use_gps else "Colombia")
+                    prompt_ciudad = city_input if city_input else "Colombia"
                     dir_text = call_claude(
                         "Eres experta en transporte urbano colombiano. Da instrucciones claras con bullets y emojis. Incluye: TransMilenio/Metro/BRT según ciudad, taxi/Uber, a pie. Máx 120 palabras. Indica tiempo estimado y costo aproximado.",
                         f"¿Cómo llegar desde el centro de {prompt_ciudad} hasta {sel_e['nom']} ubicada en {sel_e['dir']}, barrio {sel_e.get('barrio','')}?"
