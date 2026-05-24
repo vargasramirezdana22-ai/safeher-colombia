@@ -2478,6 +2478,23 @@ elif "🚔" in page:
                 border = f"2.5px solid {e['color']}" if is_sel else "1.5px solid #EDE9FE"
                 shadow = f"0 8px 28px {e['color']}30" if is_sel else "0 2px 12px rgba(109,40,217,0.07)"
                 bg = f"linear-gradient(135deg,{e['color']}08,#fff)" if is_sel else "#fff"
+
+                # Pre-calcular todos los valores antes del markdown
+                dir_short = e['dir'][:55] + ("..." if len(e['dir']) > 55 else "")
+                phone_badge = (f'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 {e["phone"]}</div>'
+                               if e['phone'] not in ('Presencial', 'Ver Maps') else '')
+                dist_badge = (f'<div style="background:#EFF6FF;color:#1D4ED8;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📏 {e["_dist_km"]} km</div>'
+                              if e.get("_dist_km") else '')
+                call_label = "📞 Llamar" if e['href'].startswith('tel:') else "🌐 Web"
+
+                if e.get('lat', 0) != 0:
+                    if e.get('_overpass'):
+                        maps_url = f"https://www.google.com/maps?q={e['_real_lat']},{e['_real_lon']}"
+                    else:
+                        maps_url = f"https://www.google.com/maps?q={e['lon']},{e['lat']}"
+                else:
+                    maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote(e['nom'] + ' ' + e['dir'])
+
                 st.markdown(f"""
                 <div style="background:{bg};border:{border};border-radius:20px;
                     padding:18px;margin-bottom:12px;box-shadow:{shadow};cursor:pointer;transition:all 0.2s;">
@@ -2489,20 +2506,18 @@ elif "🚔" in page:
                     </div>
                     <div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:4px;line-height:1.3;">{e['nom']}</div>
                     <div style="font-size:10px;color:#A78BFA;margin-bottom:4px;font-weight:600;">📍 {e['barrio']}</div>
-                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
+                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{dir_short}</div>
                     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
                         <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
-                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] not in ('Presencial','Ver Maps') else ''}
-                        {'<div style="background:#EFF6FF;color:#1D4ED8;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📏 ' + str(e.get("_dist_km","")) + ' km</div>' if e.get("_dist_km") else ''}
+                        {phone_badge}
+                        {dist_badge}
                     </div>
                     <div style="display:flex;gap:6px;">
                         <a href="{e['href']}" style="text-decoration:none;flex:1;">
                             <div style="background:linear-gradient(135deg,{e['color']},{e['color']}CC);color:#fff;border-radius:10px;
-                                padding:8px;text-align:center;font-size:11px;font-weight:800;">
-                                {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
-                            </div>
+                                padding:8px;text-align:center;font-size:11px;font-weight:800;">{call_label}</div>
                         </a>
-                        <a href="{'https://www.google.com/maps?q=' + str(e['_real_lat'] if e.get('_overpass') else e['lon']) + ',' + str(e['_real_lon'] if e.get('_overpass') else e['lat']) if e.get('lat',0)!=0 else 'https://www.google.com/maps/search/?api=1&query=' + urllib.parse.quote(e['nom'] + ' ' + e['dir'])}" target="_blank" style="text-decoration:none;flex:1;">
+                        <a href="{maps_url}" target="_blank" style="text-decoration:none;flex:1;">
                             <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
                         </a>
