@@ -2128,9 +2128,19 @@ FORMATO: Español cálido y cercano, máx 200 palabras, emojis con moderación (
 
 # ── AYUDA CERCANA ─────────────────────────────────────────────────────────────
 elif "🚔" in page:
+    import unicodedata, urllib.parse
+
+    def normalizar(texto):
+        """Quita tildes y pasa a minúsculas para comparación flexible."""
+        texto = texto.lower().strip()
+        return "".join(
+            c for c in unicodedata.normalize("NFD", texto)
+            if unicodedata.category(c) != "Mn"
+        )
+
     # ── Base de datos de entidades por ciudad colombiana ──────────────────────
     ENTIDADES_COL = {
-        "bogotá": [
+        "bogota": [
             {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Centro","dir":"Carrera 9 #15-55, Bogotá","barrio":"La Candelaria","lat":-74.0721,"lon":4.5981,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Estación de Policía Metropolitana. Denuncia inmediata y medidas de protección.","transporte":"TransMilenio: Portal Centro (5 min) · Bus: múltiples rutas Cra 10"},
             {"tipo":"Hospital","icon":"🏥","nom":"Hospital La Victoria","dir":"Calle 1 #18-98, Bogotá","barrio":"Santa Inés","lat":-74.0927,"lon":4.5883,"color":"#059669","href":"tel:3649900","phone":"364-9900","horario":"24/7 Urgencias","desc":"Hospital público de alta complejidad. Urgencias, medicina forense, apoyo psicológico para víctimas.","transporte":"TransMilenio: Av. Jiménez (10 min caminando) · Bus: Cll 1"},
             {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Bogotá 24h","dir":"Calle 8 #69B-41, Bogotá","barrio":"Paloquemao","lat":-74.0980,"lon":4.6250,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita previa.","transporte":"TransMilenio: Paloquemao (3 min caminando) · Bus: Av. Calle 6"},
@@ -2138,7 +2148,7 @@ elif "🚔" in page:
             {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Benposta","dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial","lat":-74.0800,"lon":4.6200,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Alojamiento seguro y gratuito para mujeres víctimas de violencia y sus hijos e hijas.","transporte":"Llama al 155 (gratuito). Coordinan transporte seguro y discreto"},
             {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Bogotá","dir":"Carrera 52 #42-43, Bogotá","barrio":"Paloquemao","lat":-74.0990,"lon":4.6330,"color":"#8B5CF6","href":"tel:3159700","phone":"315-9700","horario":"Lun–Vie 8am–5pm","desc":"Centro de Atención Integral a Víctimas de Violencia Sexual. Atención psicológica, jurídica y social gratuita.","transporte":"TransMilenio: Paloquemao (6 min caminando)"},
         ],
-        "medellín": [
+        "medellin": [
             {"tipo":"Policía","icon":"🚔","nom":"CAI Centro Medellín","dir":"Carrera 45 #54-20, Medellín","barrio":"Centro","lat":-75.5742,"lon":6.2442,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Centro de Atención Inmediata. Atención permanente para denuncias y emergencias policiales.","transporte":"Metro: Prado (5 min caminando) · Bus: múltiples rutas Cra 45"},
             {"tipo":"Hospital","icon":"🏥","nom":"Hospital General de Medellín","dir":"Calle 24 #29-6, Medellín","barrio":"Bomboná","lat":-75.5730,"lon":6.2358,"color":"#059669","href":"tel:4411227","phone":"444-1227","horario":"24/7 Urgencias","desc":"Hospital público con urgencias completas, medicina forense y apoyo psicológico para víctimas de violencia.","transporte":"Bus: rutas por Cll 24 · Metro: Industriales (12 min caminando)"},
             {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Medellín 24h","dir":"Calle 57 #45-129, Medellín","barrio":"Niquitao","lat":-75.5690,"lon":6.2570,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita.","transporte":"Metro: Hospital (10 min caminando) · Bus: Cll 57"},
@@ -2176,40 +2186,60 @@ elif "🚔" in page:
         {"tipo":"Línea Nacional","icon":"👨‍👩‍👧","nom":"ICBF — Línea 141","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#059669","href":"tel:141","phone":"141","horario":"24/7 Gratuita","desc":"Instituto Colombiano de Bienestar Familiar. Protección familiar, menores en riesgo, orientación a mujeres.","transporte":"Llama al 141 desde cualquier teléfono — sin costo"},
     ]
 
-    # ── Inyectar JavaScript para geolocalización ─────────────────────────────
-    st.components.v1.html("""
+    # ── Componente GPS automático — captura coords y las pasa por query param ─
+    # Usamos st.components.v1.html con postMessage para enviar lat/lon a Streamlit
+    gps_component = st.components.v1.html("""
+    <div id="gps-status" style="font-family:sans-serif;font-size:12px;color:#6B7280;padding:4px 0;"></div>
     <script>
     (function() {
-        function sendLocation(lat, lon, city) {
-            // Almacenar en sessionStorage para que Streamlit lo lea vía query params
-            const msg = JSON.stringify({lat, lon, city});
-            window.parent.postMessage({type: 'streamlit:setComponentValue', value: msg}, '*');
+        var status = document.getElementById('gps-status');
+        if (!navigator.geolocation) {
+            status.textContent = '⚠️ Tu navegador no soporta geolocalización.';
+            return;
         }
-        if (!window._geoRequested) {
-            window._geoRequested = true;
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(pos) {
-                        const lat = pos.coords.latitude;
-                        const lon = pos.coords.longitude;
-                        fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
-                            .then(r => r.json())
-                            .then(data => {
-                                const city = data.address.city || data.address.town || data.address.county || 'Colombia';
-                                sendLocation(lat, lon, city);
-                            })
-                            .catch(() => sendLocation(lat, lon, 'Ubicación detectada'));
-                    },
-                    function(err) { console.log('Geolocation error:', err); },
-                    {enableHighAccuracy: true, timeout: 10000}
-                );
-            }
-        }
+        status.textContent = '📡 Detectando ubicación...';
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                var lat = pos.coords.latitude;
+                var lon = pos.coords.longitude;
+                status.textContent = '✅ Ubicación detectada (' + lat.toFixed(4) + ', ' + lon.toFixed(4) + ')';
+                // Enviar coords a Streamlit via postMessage
+                window.parent.postMessage({
+                    type: 'streamlit:setComponentValue',
+                    value: JSON.stringify({lat: lat, lon: lon})
+                }, '*');
+            },
+            function(err) {
+                var msgs = {1:'Permiso denegado por el usuario.',2:'No se pudo obtener la ubicación.',3:'Tiempo de espera agotado.'};
+                status.textContent = '📍 ' + (msgs[err.code] || 'Error de geolocalización.') + ' Escribe tu ciudad manualmente.';
+                window.parent.postMessage({type: 'streamlit:setComponentValue', value: JSON.stringify({lat: null, lon: null})}, '*');
+            },
+            {enableHighAccuracy: true, timeout: 12000, maximumAge: 30000}
+        );
     })();
     </script>
-    """, height=0)
+    """, height=30)
 
-    # ── Cabecera con botón de ubicación ──────────────────────────────────────
+    # Leer coordenadas enviadas por el componente
+    gps_lat, gps_lon, gps_city = None, None, None
+    if gps_component and isinstance(gps_component, str):
+        try:
+            gps_data = json.loads(gps_component)
+            gps_lat = gps_data.get("lat")
+            gps_lon = gps_data.get("lon")
+        except Exception:
+            pass
+
+    # Si tenemos coordenadas nuevas, guardarlas en session_state
+    if gps_lat is not None and gps_lon is not None:
+        st.session_state["gps_lat"] = gps_lat
+        st.session_state["gps_lon"] = gps_lon
+
+    # Recuperar coords guardadas
+    saved_lat = st.session_state.get("gps_lat")
+    saved_lon = st.session_state.get("gps_lon")
+
+    # ── Cabecera ──────────────────────────────────────────────────────────────
     st.markdown("""
     <div style="margin-bottom:24px;">
         <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;
@@ -2217,7 +2247,7 @@ elif "🚔" in page:
             color:#1D4ED8;font-weight:700;margin-bottom:12px;">🚔 AYUDA CERCANA</div>
         <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 8px;letter-spacing:-0.5px;">Ayuda Cercana</h1>
         <p style="color:#6B7280;font-size:14px;margin:0;">
-            Detecta tu ubicación automáticamente y encuentra la ayuda más cercana — policía, hospitales, fiscalía, refugios.
+            Detecta tu ubicación automáticamente y encuentra la ayuda más cercana en un radio de 20 km — policía, hospitales, fiscalía, refugios.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -2244,68 +2274,84 @@ elif "🚔" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Selector de ciudad con opción de geolocalización ─────────────────────
-    geo_col, city_col = st.columns([1, 2])
-    with geo_col:
-        if st.button("📡 Detectar mi ubicación", type="primary", use_container_width=True, key="geo_btn"):
-            st.session_state["geo_requested"] = True
-            st.markdown("""
-            <script>
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(pos) {
-                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + pos.coords.latitude + '&lon=' + pos.coords.longitude + '&format=json&accept-language=es')
-                    .then(r => r.json())
-                    .then(d => {
-                        const city = (d.address.city || d.address.town || d.address.county || 'bogotá').toLowerCase();
-                        const input = window.parent.document.querySelector('input[data-testid="stTextInput"]');
-                        if(input){input.value=city;input.dispatchEvent(new Event('input',{bubbles:true}));}
-                    });
-                }, null, {enableHighAccuracy:true,timeout:8000});
-            }
-            </script>
-            """, unsafe_allow_html=True)
-            st.info("📡 Solicitando ubicación al dispositivo... Si el navegador lo pide, acepta el permiso.", icon="📍")
+    # ── Campo de ciudad (solo si no hay GPS) ─────────────────────────────────
+    city_input = ""
+    use_gps = saved_lat is not None and saved_lon is not None
 
-    with city_col:
+    if not use_gps:
         city_input = st.text_input(
-            "📍 O escribe tu ciudad:",
-            value=st.session_state.get("detected_city", "Medellín"),
+            "📍 Escribe tu ciudad (o espera a que se detecte automáticamente):",
+            value=st.session_state.get("detected_city", ""),
             key="ayuda_city",
-            placeholder="Ej: Bogotá, Cali, Barranquilla, Bucaramanga..."
+            placeholder="Ej: bogota, medellin, cali, barranquilla, bucaramanga..."
         )
 
-    # Normalizar ciudad para buscar en el diccionario
-    city_key = city_input.lower().strip()
-    city_key = city_key.replace("á","a").replace("é","e").replace("í","i").replace("ó","o").replace("ú","u")
-    # Detectar ciudad aproximada
+    # ── Normalizar texto escrito por el usuario ───────────────────────────────
+    city_key = normalizar(city_input)
+
+    # Buscar coincidencia flexible en el diccionario interno
     city_match = None
     for k in ENTIDADES_COL.keys():
-        if k in city_key or city_key in k:
+        k_norm = normalizar(k)
+        if k_norm in city_key or city_key in k_norm:
             city_match = k
             break
     if not city_match:
         for k in ENTIDADES_COL.keys():
-            if any(word in city_key for word in k.split()):
+            if any(w in city_key for w in normalizar(k).split()):
                 city_match = k
                 break
 
     entidades_ciudad = ENTIDADES_COL.get(city_match, [])
     entidades = entidades_ciudad + ENTIDADES_NACIONALES
 
-    if not entidades_ciudad:
-        st.warning(
-            f"📍 No tenemos entidades específicas para **{city_input}** aún. "
-            "Mostrando líneas nacionales disponibles para toda Colombia. "
-            "Llama al **155** para que te orienten a la entidad más cercana.",
-            icon="ℹ️"
-        )
+    # ── Mostrar estado de ubicación ───────────────────────────────────────────
+    if use_gps:
+        st.success(f"📡 Ubicación GPS activa — mostrando entidades en un radio de 20 km de tu posición real.", icon="✅")
+        # Filtrar entidades de la base local por distancia de 20 km
+        def haversine(lat1, lon1, lat2, lon2):
+            R = 6371
+            dlat = math.radians(lat2 - lat1)
+            dlon = math.radians(lon2 - lon1)
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
+            return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+        entidades_cercanas = []
+        for city_ents in ENTIDADES_COL.values():
+            for e in city_ents:
+                if e.get("lat") and e.get("lon") and e["lat"] != 0:
+                    dist = haversine(saved_lat, saved_lon, e["lon"], e["lat"])
+                    if dist <= 20:
+                        e_copy = dict(e)
+                        e_copy["_dist_km"] = round(dist, 1)
+                        entidades_cercanas.append(e_copy)
+        entidades_cercanas.sort(key=lambda x: x.get("_dist_km", 999))
+        entidades = entidades_cercanas + ENTIDADES_NACIONALES
+        if entidades_cercanas:
+            st.markdown(
+                f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
+                f'📍 <strong style="color:#1E1B4B;">{len(entidades_cercanas)}</strong> entidades encontradas en un radio de 20 km</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.info("📍 No encontramos entidades registradas a menos de 20 km. Mostrando líneas nacionales.", icon="ℹ️")
+    elif city_input.strip():
+        if not entidades_ciudad:
+            st.warning(
+                f"📍 No tenemos entidades específicas para **{city_input}** aún. "
+                "Mostrando líneas nacionales disponibles para toda Colombia. "
+                "Llama al **155** para que te orienten a la entidad más cercana.",
+                icon="ℹ️"
+            )
+        else:
+            st.markdown(
+                f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
+                f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
+                f'<strong style="color:#1E1B4B;">{city_input.strip().title()}</strong> + líneas nacionales</div>',
+                unsafe_allow_html=True
+            )
     else:
-        st.markdown(
-            f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
-            f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
-            f'<strong style="color:#1E1B4B;">{city_input}</strong> + líneas nacionales</div>',
-            unsafe_allow_html=True
-        )
+        st.info("📡 Esperando permiso de ubicación del navegador, o escribe tu ciudad arriba.", icon="📍")
 
     # ── Filtro por tipo ───────────────────────────────────────────────────────
     filter_tipo = st.selectbox(
@@ -2442,7 +2488,7 @@ elif "🚔" in page:
             # Instrucciones con IA
             if st.button("🤖 Instrucciones detalladas con IA", key="directions_btn", use_container_width=True):
                 with st.spinner("Generando ruta personalizada..."):
-                    prompt_ciudad = city_input if city_input else "Colombia"
+                    prompt_ciudad = city_input.strip() if city_input.strip() else ("mi ubicación actual" if use_gps else "Colombia")
                     dir_text = call_claude(
                         "Eres experta en transporte urbano colombiano. Da instrucciones claras con bullets y emojis. Incluye: TransMilenio/Metro/BRT según ciudad, taxi/Uber, a pie. Máx 120 palabras. Indica tiempo estimado y costo aproximado.",
                         f"¿Cómo llegar desde el centro de {prompt_ciudad} hasta {sel_e['nom']} ubicada en {sel_e['dir']}, barrio {sel_e.get('barrio','')}?"
