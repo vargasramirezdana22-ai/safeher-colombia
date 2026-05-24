@@ -1611,88 +1611,414 @@ elif "✈️" in page:
             border:1px solid #A7F3D0;border-radius:24px;padding:5px 16px;font-size:11px;
             color:#059669;font-weight:700;margin-bottom:12px;">✈️ PLANIFICACIÓN DE VIAJE SEGURO</div>
         <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 6px;letter-spacing:-0.5px;">Viaje Seguro</h1>
-        <p style="color:#6B7280;font-size:14px;margin:0;">Consulta el nivel de seguridad de cualquier departamento antes de viajar.</p>
+        <p style="color:#6B7280;font-size:14px;margin:0;">Selecciona departamento y municipio para ver el análisis de seguridad personalizado antes de viajar.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    col_sel, col_btn = st.columns([3, 1])
-    with col_sel:
-        dep_viaje = st.selectbox("🗺️ Selecciona el departamento de destino:", DEPARTAMENTOS, key="dep_viaje")
+    # ── Selectores: departamento + municipio ──────────────────────────────────
+    col_dep, col_mun, col_btn = st.columns([2, 2, 1])
+    with col_dep:
+        dep_viaje = st.selectbox("🗺️ Departamento de destino:", DEPARTAMENTOS, key="dep_viaje")
+    with col_mun:
+        munis_viaje = get_municipios(dep_viaje)
+        mun_viaje = st.selectbox("📍 Municipio (opcional):", ["— Todos —"] + munis_viaje, key="mun_viaje")
     with col_btn:
         st.markdown("<br>", unsafe_allow_html=True)
-        analizar_btn = st.button("🔍 Analizar Destino", type="primary", use_container_width=True, key="viaje_btn")
+        analizar_btn = st.button("🔍 Analizar", type="primary", use_container_width=True, key="viaje_btn")
 
     if analizar_btn or st.session_state.get("viaje_result"):
         if analizar_btn:
             data = CRIME_DATA.get(dep_viaje, {"score": 2.8, "zona": "BAJO", "gravedad": "BAJO", "municipios": 10})
             muns = get_municipios(dep_viaje)
-            st.session_state["viaje_result"] = {"dep": dep_viaje, "data": data, "muns": muns}
+            mun_sel = mun_viaje if mun_viaje != "— Todos —" else None
+            # Score ajustado si eligió municipio
+            mun_score = None
+            if mun_sel and dep_viaje in MUNICIPIO_DATA:
+                mun_info = next((m for m in MUNICIPIO_DATA[dep_viaje] if m["name"] == mun_sel), None)
+                if mun_info:
+                    mun_score = mun_info["score"]
+            st.session_state["viaje_result"] = {
+                "dep": dep_viaje, "data": data, "muns": muns,
+                "mun_sel": mun_sel, "mun_score": mun_score
+            }
             st.session_state.pop("viaje_tips", None)
 
         vr = st.session_state.get("viaje_result")
         if vr:
-            score = vr["data"]["score"]
-            if score <= 2.0:
-                safety = {"label": "Seguro", "color": "#059669", "bg": "linear-gradient(135deg,#ECFDF5,#D1FAE5)", "icon": "🟢", "stars": 5}
-            elif score <= 3.0:
-                safety = {"label": "Precaución", "color": "#F59E0B", "bg": "linear-gradient(135deg,#FFFBEB,#FEF3C7)", "icon": "🟡", "stars": 3}
-            elif score <= 4.0:
-                safety = {"label": "Riesgo Medio", "color": "#EF4444", "bg": "linear-gradient(135deg,#FEF2F2,#FEE2E2)", "icon": "🟠", "stars": 2}
-            else:
-                safety = {"label": "Alto Riesgo", "color": "#DC2626", "bg": "linear-gradient(135deg,#FEF2F2,#FECDD3)", "icon": "🔴", "stars": 1}
+            # Usar score del municipio si aplica
+            score_base = vr["data"]["score"]
+            score = vr.get("mun_score") or score_base
+            mun_label = f' · {vr["mun_sel"]}' if vr.get("mun_sel") else ""
 
-            stars_html = "".join([f'<span style="font-size:20px;color:{"#F59E0B" if i<safety["stars"] else "#E2E8F0"};">★</span>' for i in range(5)])
+            if score <= 2.0:
+                safety = {"label": "Muy Seguro", "color": "#059669", "bg": "linear-gradient(135deg,#ECFDF5,#D1FAE5)", "icon": "🟢", "stars": 5, "emoji": "😊"}
+            elif score <= 3.0:
+                safety = {"label": "Precaución Moderada", "color": "#F59E0B", "bg": "linear-gradient(135deg,#FFFBEB,#FEF3C7)", "icon": "🟡", "stars": 3, "emoji": "⚠️"}
+            elif score <= 4.0:
+                safety = {"label": "Riesgo Medio-Alto", "color": "#EF4444", "bg": "linear-gradient(135deg,#FEF2F2,#FEE2E2)", "icon": "🟠", "stars": 2, "emoji": "🚨"}
+            else:
+                safety = {"label": "Alto Riesgo — Precaución Máxima", "color": "#DC2626", "bg": "linear-gradient(135deg,#FEF2F2,#FECDD3)", "icon": "🔴", "stars": 1, "emoji": "🛑"}
+
+            stars_html = "".join([
+                f'<span style="font-size:22px;color:{"#F59E0B" if i < safety["stars"] else "#E2E8F0"};">★</span>'
+                for i in range(5)
+            ])
+
+            # ── Banner principal ──────────────────────────────────────────────
             st.markdown(f"""<div style="background:{safety['bg']};border:2px solid {safety['color']}30;
-                border-radius:24px;padding:28px 34px;margin-bottom:24px;display:flex;align-items:center;gap:24px;">
-                <div style="font-size:56px;">{safety['icon']}</div>
+                border-radius:24px;padding:24px 32px;margin-bottom:24px;display:flex;align-items:center;gap:24px;
+                box-shadow:0 4px 20px {safety['color']}18;">
+                <div style="font-size:52px;">{safety['icon']}</div>
                 <div style="flex:1;">
-                    <div style="font-size:24px;font-weight:900;color:#1E1B4B;margin-bottom:4px;">{vr['dep']}</div>
-                    <div style="font-size:17px;font-weight:700;color:{safety['color']};margin-bottom:10px;">{safety['label']}</div>
-                    <div>{stars_html}<span style="font-size:12px;color:#6B7280;margin-left:8px;">índice de seguridad</span></div>
+                    <div style="font-size:22px;font-weight:900;color:#1E1B4B;margin-bottom:2px;">{vr['dep']}{mun_label}</div>
+                    <div style="font-size:15px;font-weight:700;color:{safety['color']};margin-bottom:10px;">{safety['label']} {safety['emoji']}</div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div>{stars_html}</div>
+                        <span style="font-size:11px;color:#6B7280;font-weight:600;">índice de seguridad para mujeres</span>
+                    </div>
                 </div>
                 <div style="text-align:right;">
-                    <div style="font-size:52px;font-weight:900;color:{safety['color']};font-family:Georgia,serif;line-height:1;">{score:.1f}</div>
-                    <div style="font-size:12px;color:#6B7280;font-weight:600;">Score / 6.0</div>
+                    <div style="font-size:50px;font-weight:900;color:{safety['color']};font-family:Georgia,serif;line-height:1;">{score:.1f}</div>
+                    <div style="font-size:11px;color:#6B7280;font-weight:600;">Score / 6.0</div>
+                    {f'<div style="font-size:10px;color:#A78BFA;margin-top:4px;">Depto: {score_base:.1f}</div>' if vr.get("mun_score") else ""}
                 </div>
             </div>""", unsafe_allow_html=True)
 
-            col_a, col_b = st.columns(2)
-            with col_a:
-                st.markdown('<div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:14px;">🏙️ Municipios del Departamento</div>', unsafe_allow_html=True)
-                chips = "".join([f'<span style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);color:#5B21B6;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;margin:3px;border:1px solid #C4B5FD;">{m}</span>' for m in vr["muns"]])
-                st.markdown(f'<div style="display:flex;flex-wrap:wrap;gap:4px;">{chips}</div>', unsafe_allow_html=True)
-            with col_b:
-                st.markdown('<div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:14px;">⚠️ Riesgo por Tipo de Delito</div>', unsafe_allow_html=True)
-                zonas_l = ["MUY BAJO","BAJO","MEDIO-BAJO","MEDIO-ALTO","ALTO","MUY ALTO"]
-                delito_scores = sorted(
-                    [{"d": d, "sc": round(vr["data"]["score"] * DELIT_FACTOR.get(d, 1.0), 1)} for d in DELITOS],
-                    key=lambda x: x["sc"], reverse=True
-                )
-                max_sc = delito_scores[0]["sc"] if delito_scores else 1
-                for item in delito_scores:
-                    z = zonas_l[min(max(round(item["sc"]) - 1, 0), 5)]
-                    cfg = RISK_LEVELS.get(z, {"color": "#888"})
-                    st.markdown(f"""<div style="margin-bottom:10px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                            <span style="font-size:11px;color:#1E1B4B;font-weight:600;">{item['d']}</span>
-                            {risk_badge(z, small=True)}
-                        </div>
-                        <div style="background:#EDE9FE;border-radius:6px;height:7px;overflow:hidden;">
-                            <div style="width:{item['sc']/max_sc*100:.0f}%;height:100%;background:{cfg['color']};border-radius:6px;"></div>
-                        </div>
+            # ── KPIs rápidos ──────────────────────────────────────────────────
+            zonas_list = ["MUY BAJO","BAJO","MEDIO-BAJO","MEDIO-ALTO","ALTO","MUY ALTO"]
+            delito_scores = sorted(
+                [{"d": d, "sc": round(score * DELIT_FACTOR.get(d, 1.0), 1)} for d in DELITOS],
+                key=lambda x: x["sc"], reverse=True
+            )
+            delito_mas_alto = delito_scores[0]["d"] if delito_scores else "N/A"
+            hora_seg = "6am – 9pm" if score <= 3.0 else "8am – 7pm"
+            transporte_seg = "Taxi/App, bus urbano" if score <= 3.0 else "Solo taxi/app verificado"
+
+            k1, k2, k3, k4 = st.columns(4)
+            for col, icon, label, val, color in [
+                (k1, "⚠️", "Delito más frecuente", delito_mas_alto.title(), safety["color"]),
+                (k2, "🕐", "Horario seguro", hora_seg, "#059669"),
+                (k3, "🚗", "Transporte recomendado", transporte_seg, "#2563EB"),
+                (k4, "📍", "Municipios analizados", str(vr["data"]["municipios"]), "#7C3AED"),
+            ]:
+                with col:
+                    st.markdown(f"""<div style="background:#fff;border-radius:16px;border:1px solid #EDE9FE;
+                        padding:14px 16px;box-shadow:0 2px 12px rgba(109,40,217,0.06);margin-bottom:16px;">
+                        <div style="font-size:20px;margin-bottom:6px;">{icon}</div>
+                        <div style="font-size:10px;color:#A78BFA;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{label}</div>
+                        <div style="font-size:13px;font-weight:800;color:{color};line-height:1.3;">{val}</div>
                     </div>""", unsafe_allow_html=True)
 
-            st.markdown(f'<div style="font-size:15px;font-weight:800;color:#1E1B4B;margin-bottom:6px;">🤖 Consejos Personalizados con IA para {vr["dep"]}</div>', unsafe_allow_html=True)
-            if "viaje_tips" not in st.session_state:
-                with st.spinner("✨ Preparando consejos personalizados..."):
-                    tips = call_claude(
-                        "Eres experta en seguridad para mujeres viajeras en Colombia. Responde en español con bullets y emojis. Secciones: 🛡️ Recomendaciones de seguridad, 🏠 Mejores zonas para alojarse, 🕐 Horarios seguros, 🚗 Transporte recomendado, 📞 Números de emergencia locales. Máx 220 palabras. Sé específica para el departamento.",
-                        f"Consejos para mujer viajando a {vr['dep']}, Colombia. Score de riesgo: {score:.1f}/6.0 (zona: {vr['data']['zona']})."
-                    )
-                    st.session_state["viaje_tips"] = tips
-            tips_text = st.session_state.get("viaje_tips", "")
-            st.markdown(f'<div style="font-size:13px;color:#1E1B4B;line-height:1.85;white-space:pre-wrap;background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:14px;padding:18px;border:1px solid #C4B5FD;">{tips_text}</div>', unsafe_allow_html=True)
+            # ── Tabs: Municipios | Gráficas | Consejos ────────────────────────
+            tab_muns, tab_graficas, tab_consejos = st.tabs([
+                "🏙️ Municipios del Departamento",
+                "📊 Análisis Visual de Riesgo",
+                "💡 Consejos de Seguridad"
+            ])
 
+            # ── Tab 1: Municipios ──────────────────────────────────────────────
+            with tab_muns:
+                st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin:14px 0 16px;">🏙️ Selecciona un municipio para ver su nivel de riesgo individual</div>', unsafe_allow_html=True)
+
+                mun_data_dep = MUNICIPIO_DATA.get(vr["dep"], [])
+                mun_sorted_v = sorted(mun_data_dep, key=lambda x: x["score"], reverse=True)
+                max_mun_s = mun_sorted_v[0]["score"] if mun_sorted_v else 1
+
+                cols_mun = st.columns(3)
+                for i, m in enumerate(mun_sorted_v):
+                    mcolor = get_risk_color(m["score"])
+                    is_sel = vr.get("mun_sel") == m["name"]
+                    bg_m = f"{mcolor}12" if is_sel else "#FAFAFA"
+                    border_m = f"2px solid {mcolor}" if is_sel else "1px solid #EDE9FE"
+                    with cols_mun[i % 3]:
+                        st.markdown(f"""<div style="background:{bg_m};border:{border_m};border-radius:14px;
+                            padding:12px 14px;margin-bottom:10px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                <span style="font-size:12px;font-weight:{"800" if is_sel else "600"};color:#1E1B4B;">{m['name']}</span>
+                                {risk_badge(m['zona'], small=True)}
+                            </div>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <div style="flex:1;background:#EDE9FE;border-radius:6px;height:7px;overflow:hidden;">
+                                    <div style="width:{m['score']/max_mun_s*100:.0f}%;height:100%;background:{mcolor};border-radius:6px;"></div>
+                                </div>
+                                <span style="font-size:11px;font-weight:900;color:{mcolor};flex-shrink:0;">{m['score']:.1f}</span>
+                            </div>
+                        </div>""", unsafe_allow_html=True)
+                        if st.button(f"{'✓ Seleccionado' if is_sel else 'Analizar'}", key=f"mun_v_{i}_{m['name'][:8]}", use_container_width=True,
+                                     type="primary" if is_sel else "secondary"):
+                            data2 = CRIME_DATA.get(vr["dep"], vr["data"])
+                            muns2 = get_municipios(vr["dep"])
+                            st.session_state["viaje_result"] = {
+                                "dep": vr["dep"], "data": data2, "muns": muns2,
+                                "mun_sel": m["name"] if not is_sel else None,
+                                "mun_score": m["score"] if not is_sel else None
+                            }
+                            st.session_state.pop("viaje_tips", None)
+                            st.rerun()
+
+            # ── Tab 2: Gráficas ────────────────────────────────────────────────
+            with tab_graficas:
+                import plotly.graph_objects as go
+
+                col_g1, col_g2 = st.columns(2)
+
+                # Gráfica 1: Barras horizontales por tipo de delito
+                with col_g1:
+                    st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">⚖️ Score de Riesgo por Tipo de Delito</div>', unsafe_allow_html=True)
+                    labels_d = [item["d"].title() for item in delito_scores]
+                    values_d = [item["sc"] for item in delito_scores]
+                    zonas_d  = [zonas_list[min(max(round(v)-1, 0), 5)] for v in values_d]
+                    bar_colors_d = [RISK_LEVELS.get(z, {"color":"#888"})["color"] for z in zonas_d]
+                    fig_bar = go.Figure(go.Bar(
+                        x=values_d, y=labels_d, orientation="h",
+                        marker=dict(color=bar_colors_d, opacity=0.88, line=dict(width=0)),
+                        text=[f"{v:.1f}" for v in values_d],
+                        textposition="outside", textfont=dict(size=11, color="#1E1B4B")
+                    ))
+                    fig_bar.update_layout(
+                        height=240, margin=dict(l=10, r=50, t=10, b=20),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        xaxis=dict(range=[0, max(values_d)*1.2], gridcolor="#EDE9FE",
+                                   tickfont=dict(size=9, color="#6B7280"), title="Score"),
+                        yaxis=dict(tickfont=dict(size=10, color="#1E1B4B")),
+                        font=dict(family="Plus Jakarta Sans"), showlegend=False
+                    )
+                    st.plotly_chart(fig_bar, use_container_width=True, config={"displayModeBar": False})
+
+                # Gráfica 2: Gauge / indicador de riesgo general
+                with col_g2:
+                    st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">🎯 Indicador General de Riesgo</div>', unsafe_allow_html=True)
+                    fig_gauge = go.Figure(go.Indicator(
+                        mode="gauge+number+delta",
+                        value=score,
+                        delta={"reference": 3.0, "increasing": {"color": "#DC2626"}, "decreasing": {"color": "#059669"}},
+                        number={"suffix": "/6.0", "font": {"size": 28, "color": safety["color"]}},
+                        gauge={
+                            "axis": {"range": [0, 6], "tickwidth": 1, "tickcolor": "#6B7280",
+                                     "tickfont": {"size": 9}},
+                            "bar": {"color": safety["color"], "thickness": 0.28},
+                            "bgcolor": "white",
+                            "borderwidth": 0,
+                            "steps": [
+                                {"range": [0, 2], "color": "#D1FAE5"},
+                                {"range": [2, 3], "color": "#FEF3C7"},
+                                {"range": [3, 4], "color": "#FFEDD5"},
+                                {"range": [4, 5], "color": "#FEE2E2"},
+                                {"range": [5, 6], "color": "#FECDD3"},
+                            ],
+                            "threshold": {"line": {"color": "#1E1B4B", "width": 3}, "thickness": 0.75, "value": score}
+                        },
+                        title={"text": f"{vr['dep']}{mun_label}<br><span style='font-size:11px;color:#6B7280;'>{safety['label']}</span>",
+                               "font": {"size": 13, "color": "#1E1B4B"}}
+                    ))
+                    fig_gauge.update_layout(
+                        height=240, margin=dict(l=20, r=20, t=30, b=10),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(family="Plus Jakarta Sans")
+                    )
+                    st.plotly_chart(fig_gauge, use_container_width=True, config={"displayModeBar": False})
+
+                col_g3, col_g4 = st.columns(2)
+
+                # Gráfica 3: Radar de dimensiones de riesgo
+                with col_g3:
+                    st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">🕸️ Radar de Dimensiones de Riesgo</div>', unsafe_allow_html=True)
+                    radar_cats_v = ["Violencia física", "Riesgo nocturno", "Transporte", "Zonas remotas", "Riesgo digital", "Acoso"]
+                    s_n = score / 6.0
+                    radar_vals_v = [
+                        round(min(s_n * 1.05, 1.0) * 100),
+                        round(min(s_n * 1.25, 1.0) * 100),
+                        round(min(s_n * 0.75, 1.0) * 100),
+                        round(min(s_n * 1.15, 1.0) * 100),
+                        round(min(s_n * 0.65, 1.0) * 100),
+                        round(min(s_n * 0.90, 1.0) * 100),
+                    ]
+                    fig_radar = go.Figure()
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=radar_vals_v, theta=radar_cats_v, fill='toself',
+                        fillcolor=f"rgba({','.join(str(int(safety['color'].lstrip('#')[i:i+2], 16)) for i in (0,2,4))},0.18)",
+                        line=dict(color=safety["color"], width=2.5),
+                        marker=dict(size=7, color=safety["color"]),
+                        name=vr["dep"]
+                    ))
+                    fig_radar.add_trace(go.Scatterpolar(
+                        r=[50]*6, theta=radar_cats_v,
+                        line=dict(color="#E2E8F0", width=1, dash="dot"),
+                        showlegend=False, mode="lines", name="Referencia"
+                    ))
+                    fig_radar.update_layout(
+                        polar=dict(
+                            radialaxis=dict(visible=True, range=[0, 100], tickfont=dict(size=8), gridcolor="#EDE9FE"),
+                            angularaxis=dict(tickfont=dict(size=10, color="#1E1B4B")),
+                            bgcolor="rgba(0,0,0,0)"
+                        ),
+                        height=240, margin=dict(l=40, r=40, t=20, b=20),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        showlegend=False,
+                        font=dict(family="Plus Jakarta Sans")
+                    )
+                    st.plotly_chart(fig_radar, use_container_width=True, config={"displayModeBar": False})
+
+                # Gráfica 4: Dona de distribución de riesgo entre municipios
+                with col_g4:
+                    st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:12px;">🍩 Distribución de Municipios por Nivel</div>', unsafe_allow_html=True)
+                    mun_dep_list = MUNICIPIO_DATA.get(vr["dep"], [])
+                    zona_counts = {}
+                    for m in mun_dep_list:
+                        z = m["zona"]
+                        zona_counts[z] = zona_counts.get(z, 0) + 1
+                    dona_labels = list(zona_counts.keys())
+                    dona_values = list(zona_counts.values())
+                    dona_colors = [RISK_LEVELS.get(z, {"color": "#888"})["color"] for z in dona_labels]
+                    fig_dona = go.Figure(go.Pie(
+                        labels=dona_labels, values=dona_values,
+                        hole=0.55,
+                        marker=dict(colors=dona_colors, line=dict(color="white", width=2)),
+                        textinfo="label+percent",
+                        textfont=dict(size=9),
+                        showlegend=False
+                    ))
+                    fig_dona.update_layout(
+                        height=240, margin=dict(l=10, r=10, t=10, b=10),
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        font=dict(family="Plus Jakarta Sans"),
+                        annotations=[dict(text=f"{len(mun_dep_list)}<br><span style='font-size:9px'>munic.</span>",
+                                          x=0.5, y=0.5, font_size=16, showarrow=False,
+                                          font=dict(color="#1E1B4B", family="Georgia"))]
+                    )
+                    st.plotly_chart(fig_dona, use_container_width=True, config={"displayModeBar": False})
+
+            # ── Tab 3: Consejos de Seguridad ──────────────────────────────────
+            with tab_consejos:
+                st.markdown(f'<div style="font-size:15px;font-weight:800;color:#1E1B4B;margin:14px 0 18px;">🤖 Consejos Personalizados — {vr["dep"]}{mun_label}</div>', unsafe_allow_html=True)
+
+                if "viaje_tips" not in st.session_state:
+                    with st.spinner("✨ Preparando consejos personalizados con IA..."):
+                        tips_raw = call_claude(
+                            """Eres experta en seguridad para mujeres viajeras en Colombia. Responde en español con bullets y emojis.
+Devuelve EXACTAMENTE este JSON (sin markdown, sin texto extra):
+{
+  "seguridad": ["consejo1","consejo2","consejo3"],
+  "alojamiento": ["consejo1","consejo2","consejo3"],
+  "horarios": ["consejo1","consejo2"],
+  "transporte": ["consejo1","consejo2","consejo3"],
+  "emergencias": ["Policía: 123","Línea Mujer: 155","consejo local"],
+  "cultura": ["consejo1","consejo2"],
+  "tecnologia": ["consejo1","consejo2"],
+  "salud": ["consejo1","consejo2"]
+}
+Los consejos deben ser concretos, prácticos y específicos para el departamento indicado. Mínimo 1 consejo único de ese departamento por sección.""",
+                            f"Departamento: {vr['dep']}, Colombia. Score de riesgo: {score:.1f}/6.0 (zona: {vr['data']['zona']}). Municipio: {vr.get('mun_sel','todos'}."
+                        )
+                        # Parsear JSON
+                        import json as _json
+                        try:
+                            clean = tips_raw.strip().replace("```json","").replace("```","").strip()
+                            tips_dict = _json.loads(clean)
+                        except Exception:
+                            tips_dict = None
+                        st.session_state["viaje_tips"] = tips_raw
+                        st.session_state["viaje_tips_dict"] = tips_dict
+
+                tips_dict = st.session_state.get("viaje_tips_dict")
+
+                SECCIONES_CONSEJOS = [
+                    ("seguridad",    "🛡️", "Seguridad Personal",        "#DC2626", "#FEF2F2", "#FECDD3"),
+                    ("alojamiento",  "🏠", "Mejores Zonas para Alojarse","#7C3AED", "#F5F3FF", "#DDD6FE"),
+                    ("horarios",     "🕐", "Horarios Seguros",           "#059669", "#ECFDF5", "#A7F3D0"),
+                    ("transporte",   "🚗", "Transporte Recomendado",     "#2563EB", "#EFF6FF", "#BFDBFE"),
+                    ("tecnologia",   "📱", "Tecnología y Conectividad",  "#0891B2", "#ECFEFF", "#A5F3FC"),
+                    ("cultura",      "🌺", "Cultura y Costumbres Locales","#D97706", "#FFFBEB", "#FDE68A"),
+                    ("salud",        "💊", "Salud y Prevención",         "#16A34A", "#F0FDF4", "#BBF7D0"),
+                    ("emergencias",  "📞", "Emergencias Locales",        "#991B1B", "#FFF1F2", "#FECDD3"),
+                ]
+
+                if tips_dict:
+                    # Layout 2 columnas para las secciones
+                    cols_tips = st.columns(2)
+                    for idx, (key, icon, titulo, color, bg, border_c) in enumerate(SECCIONES_CONSEJOS):
+                        items = tips_dict.get(key, [])
+                        if not items:
+                            continue
+                        with cols_tips[idx % 2]:
+                            bullets = "".join([
+                                f'<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;">'
+                                f'<span style="color:{color};font-size:14px;flex-shrink:0;margin-top:1px;">•</span>'
+                                f'<span style="font-size:12px;color:#374151;line-height:1.65;">{item}</span>'
+                                f'</div>'
+                                for item in items
+                            ])
+                            st.markdown(f"""<div style="background:{bg};border:1.5px solid {border_c};
+                                border-radius:18px;padding:16px 18px;margin-bottom:14px;
+                                border-left:4px solid {color};">
+                                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                                    <div style="width:36px;height:36px;background:{color}18;border-radius:10px;
+                                        display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">{icon}</div>
+                                    <span style="font-size:13px;font-weight:800;color:#1E1B4B;">{titulo}</span>
+                                </div>
+                                {bullets}
+                            </div>""", unsafe_allow_html=True)
+                else:
+                    # Fallback: mostrar texto plano formateado
+                    tips_text = st.session_state.get("viaje_tips", "")
+                    if tips_text:
+                        # Dividir por secciones usando emojis como separadores
+                        secciones_fb = [
+                            ("🛡️", "Seguridad Personal", "#DC2626", "#FEF2F2"),
+                            ("🏠", "Alojamiento", "#7C3AED", "#F5F3FF"),
+                            ("🕐", "Horarios Seguros", "#059669", "#ECFDF5"),
+                            ("🚗", "Transporte", "#2563EB", "#EFF6FF"),
+                            ("📞", "Emergencias", "#991B1B", "#FFF1F2"),
+                        ]
+                        lines = tips_text.split("\n")
+                        current = []
+                        current_sec = None
+                        parsed = {}
+                        for line in lines:
+                            for emoji, label, *_ in secciones_fb:
+                                if emoji in line:
+                                    if current_sec:
+                                        parsed[current_sec] = current
+                                    current_sec = label
+                                    current = []
+                                    break
+                            else:
+                                if line.strip().startswith("*") or line.strip().startswith("-"):
+                                    current.append(line.strip().lstrip("*- "))
+                        if current_sec:
+                            parsed[current_sec] = current
+
+                        cols_fb = st.columns(2)
+                        for i, (emoji, label, color, bg) in enumerate(secciones_fb):
+                            items_fb = parsed.get(label, [])
+                            if not items_fb:
+                                continue
+                            with cols_fb[i % 2]:
+                                bullets_fb = "".join([f'<div style="display:flex;gap:8px;margin-bottom:8px;"><span style="color:{color};">•</span><span style="font-size:12px;color:#374151;line-height:1.6;">{it}</span></div>' for it in items_fb if it])
+                                st.markdown(f"""<div style="background:{bg};border-radius:16px;padding:14px 16px;margin-bottom:12px;border-left:4px solid {color};">
+                                    <div style="font-size:13px;font-weight:800;color:#1E1B4B;margin-bottom:10px;">{emoji} {label}</div>
+                                    {bullets_fb}
+                                </div>""", unsafe_allow_html=True)
+
+                # Aviso general basado en score
+                if score >= 4.0:
+                    av_bg, av_border, av_color, av_icon, av_text = "#FEF2F2","#FECDD3","#991B1B","🚨","Zona de ALTO RIESGO. Se recomienda evitar viajes no esenciales y consultar a autoridades antes de viajar."
+                elif score >= 3.0:
+                    av_bg, av_border, av_color, av_icon, av_text = "#FFFBEB","#FDE68A","#92400E","⚠️","Riesgo MODERADO. Viaja informada, comparte tu itinerario con alguien de confianza y guarda los números de emergencia."
+                else:
+                    av_bg, av_border, av_color, av_icon, av_text = "#ECFDF5","#A7F3D0","#065F46","✅","Destino RELATIVAMENTE SEGURO. Mantén precauciones básicas para disfrutar tu viaje tranquila."
+                st.markdown(f"""<div style="background:{av_bg};border:1.5px solid {av_border};border-radius:16px;
+                    padding:16px 22px;display:flex;align-items:flex-start;gap:12px;margin-top:8px;">
+                    <span style="font-size:22px;">{av_icon}</span>
+                    <div>
+                        <div style="font-weight:800;color:{av_color};font-size:13px;margin-bottom:4px;">Recomendación General</div>
+                        <div style="font-size:12px;color:{av_color};opacity:0.9;line-height:1.6;">{av_text}</div>
+                    </div>
+                    <div style="margin-left:auto;display:flex;gap:6px;">
+                        <a href="tel:155" style="background:{av_color};color:#fff;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">📞 155 Línea Mujer</a>
+                        <a href="tel:123" style="background:#DC2626;color:#fff;padding:8px 14px;border-radius:12px;font-size:11px;font-weight:700;text-decoration:none;white-space:nowrap;">🚨 123 Policía</a>
+                    </div>
+                </div>""", unsafe_allow_html=True)
 # ── EMERGENCIAS ────────────────────────────────────────────────────────────────
 elif "🚨" in page:
     st.markdown("""
@@ -2126,2880 +2452,7 @@ FORMATO: Español cálido y cercano, máx 200 palabras, emojis con moderación (
         with col_info_sara:
             st.markdown('<div style="font-size:11px;color:#A78BFA;padding:8px 0;">🔒 Esta conversación es completamente confidencial y no se almacena de forma permanente.</div>', unsafe_allow_html=True)
 
-# ── AYUDA CERCANA ─────────────────────────────────────────────────────────────
-elif "🚔" in page:
-    ENTIDADES_COL = {
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # BOGOTÁ D.C.
-    # ══════════════════════════════════════════════════════════════════════════
-    "bogotá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Centro",
-         "dir":"Carrera 9 #15-55, Bogotá","barrio":"La Candelaria",
-         "lat":-74.0721,"lon":4.5981,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana. Denuncia inmediata y medidas de protección.",
-         "transporte":"TransMilenio: Portal Centro (5 min) · Bus: múltiples rutas Cra 10"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital La Victoria",
-         "dir":"Calle 1 #18-98, Bogotá","barrio":"Santa Inés",
-         "lat":-74.0927,"lon":4.5883,"color":"#059669",
-         "href":"tel:3649900","phone":"364-9900","horario":"24/7 Urgencias",
-         "desc":"Hospital público de alta complejidad. Urgencias, medicina forense, apoyo psicológico para víctimas.",
-         "transporte":"TransMilenio: Av. Jiménez (10 min caminando) · Bus: Cll 1"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Bogotá 24h",
-         "dir":"Calle 8 #69B-41, Bogotá","barrio":"Paloquemao",
-         "lat":-74.0980,"lon":4.6250,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin cita previa.",
-         "transporte":"TransMilenio: Paloquemao (3 min caminando) · Bus: Av. Calle 6"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia N°1",
-         "dir":"Cra 24 #34-17, Bogotá","barrio":"Teusaquillo",
-         "lat":-74.0860,"lon":4.6330,"color":"#0891B2",
-         "href":"tel:123","phone":"123 / Presencial","horario":"Lun–Vie 7am–4pm",
-         "desc":"Medidas de protección por violencia intrafamiliar. Órdenes de alejamiento inmediatas.",
-         "transporte":"TransMilenio: Parkway (8 min caminando)"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Benposta",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.0800,"lon":4.6200,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro y gratuito para mujeres víctimas de violencia y sus hijos e hijas.",
-         "transporte":"Llama al 155 (gratuito). Coordinan transporte seguro y discreto"},
-        {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Bogotá",
-         "dir":"Carrera 52 #42-43, Bogotá","barrio":"Paloquemao",
-         "lat":-74.0990,"lon":4.6330,"color":"#8B5CF6",
-         "href":"tel:3159700","phone":"315-9700","horario":"Lun–Vie 8am–5pm",
-         "desc":"Centro de Atención Integral a Víctimas de Violencia Sexual. Atención psicológica, jurídica y social gratuita.",
-         "transporte":"TransMilenio: Paloquemao (6 min caminando)"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CUNDINAMARCA
-    # ══════════════════════════════════════════════════════════════════════════
-    "chía": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Chía",
-         "dir":"Calle 11 #10-50, Chía","barrio":"Centro",
-         "lat":-74.0462,"lon":4.8600,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Chía. Denuncias y medidas de protección inmediatas.",
-         "transporte":"Bus intermunicipal Portal Norte o Zipaquirá · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital de Chía",
-         "dir":"Carrera 11 #15-20, Chía","barrio":"Centro",
-         "lat":-74.0470,"lon":4.8610,"color":"#059669",
-         "href":"tel:8616200","phone":"861-6200","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal con urgencias. Atención médica y apoyo a víctimas de violencia.",
-         "transporte":"Bus desde Portal Norte · 30 min desde Bogotá"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"Fiscalía Seccional Chía",
-         "dir":"Carrera 10 #14-30, Chía","barrio":"Centro",
-         "lat":-74.0455,"lon":4.8595,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"Lun–Vie 8am–5pm · Urgencias 24/7",
-         "desc":"Seccional Fiscalía. Denuncias penales. Para urgencias fuera de horario llama al 018000919748.",
-         "transporte":"Bus desde Portal Norte · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Chía",
-         "dir":"Calle 12 #9-40, Chía","barrio":"Centro",
-         "lat":-74.0465,"lon":4.8605,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial / 123","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar. Apoyo psicosocial municipal.",
-         "transporte":"Bus desde Portal Norte · 30 min desde Bogotá"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Chía",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.0450,"lon":4.8590,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro para mujeres víctimas de violencia. Coordinado con la Línea 155 nacional.",
-         "transporte":"Llama al 155 — coordinan transporte seguro desde cualquier punto"},
-    ],
-    "soacha": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Soacha",
-         "dir":"Cra 5 #13-20, Soacha","barrio":"Centro",
-         "lat":-74.2170,"lon":4.5790,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Soacha. Denuncias, emergencias y medidas de protección.",
-         "transporte":"TransMilenio: Portal Sur (5 min) · Bus a Soacha Centro"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Mario Gaitán Yanguas",
-         "dir":"Calle 13 #7-20, Soacha","barrio":"Centro",
-         "lat":-74.2160,"lon":4.5800,"color":"#059669",
-         "href":"tel:7299000","phone":"729-9000","horario":"24/7 Urgencias",
-         "desc":"Principal hospital de Soacha. Urgencias, medicina forense y apoyo a víctimas de violencia.",
-         "transporte":"TransMilenio: Portal Sur + bus alimentador · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Soacha",
-         "dir":"Calle 14 #6-50, Soacha","barrio":"Centro",
-         "lat":-74.2180,"lon":4.5785,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes sin cita previa.",
-         "transporte":"Portal Sur + bus a Soacha Centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Soacha",
-         "dir":"Cra 6 #12-10, Soacha","barrio":"Centro",
-         "lat":-74.2155,"lon":4.5795,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección, conciliación y apoyo psicosocial gratuito.",
-         "transporte":"TransMilenio: Portal Sur + bus · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Soacha",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.2165,"lon":4.5788,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro para mujeres víctimas de violencia. Gratuito con coordinación de la Línea 155.",
-         "transporte":"Llama al 155 — coordinan transporte discreto"},
-    ],
-    "zipaquirá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Zipaquirá",
-         "dir":"Calle 3 #8-30, Zipaquirá","barrio":"Centro",
-         "lat":-74.0050,"lon":5.0220,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Zipaquirá. Denuncias y atención permanente.",
-         "transporte":"Tren de cercanías desde Bogotá (1h) · Bus intermunicipal · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Juan de Dios Zipaquirá",
-         "dir":"Calle 5 #6-25, Zipaquirá","barrio":"Centro",
-         "lat":-74.0060,"lon":5.0215,"color":"#059669",
-         "href":"tel:8522700","phone":"852-2700","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias, medicina y apoyo a víctimas de violencia intrafamiliar.",
-         "transporte":"Tren o bus desde Bogotá · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Zipaquirá",
-         "dir":"Cra 9 #3-15, Zipaquirá","barrio":"Centro",
-         "lat":-74.0045,"lon":5.0225,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar. Apoyo psicosocial.",
-         "transporte":"Tren o bus desde Bogotá · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Zipaquirá",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.0055,"lon":5.0218,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con la Línea 155 nacional.",
-         "transporte":"Llama al 155 — coordinan transporte seguro"},
-    ],
-    "tocancipá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Tocancipá",
-         "dir":"Calle 5 #5-10, Tocancipá","barrio":"Centro",
-         "lat":-73.9100,"lon":5.0060,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Tocancipá. Denuncias y emergencias las 24 horas.",
-         "transporte":"Bus intermunicipal desde Portal Norte (Bogotá) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Antonio Tocancipá",
-         "dir":"Carrera 6 #4-20, Tocancipá","barrio":"Centro",
-         "lat":-73.9095,"lon":5.0065,"color":"#059669",
-         "href":"tel:8562200","phone":"856-2200","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal con urgencias. Atención médica y apoyo inicial a víctimas de violencia.",
-         "transporte":"Bus desde Portal Norte · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Tocancipá",
-         "dir":"Cra 5 #3-50, Tocancipá","barrio":"Centro",
-         "lat":-73.9105,"lon":5.0055,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial / 123","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección, atención psicosocial y orientación jurídica.",
-         "transporte":"Bus desde Portal Norte · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Tocancipá",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.9100,"lon":5.0060,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Atención y alojamiento seguro para mujeres víctimas de violencia. Coordinado con Línea 155.",
-         "transporte":"Llama al 155 — coordinan transporte discreto"},
-    ],
-    "facatativá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Facatativá",
-         "dir":"Calle 9 #10-30, Facatativá","barrio":"Centro",
-         "lat":-74.3550,"lon":4.8150,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Facatativá. Denuncias y medidas de protección.",
-         "transporte":"Bus Bogotá–Facatativá (1h) · Sitp / Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael Facatativá",
-         "dir":"Cra 11 #7-25, Facatativá","barrio":"Centro",
-         "lat":-74.3545,"lon":4.8155,"color":"#059669",
-         "href":"tel:8920880","phone":"892-0880","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y apoyo a víctimas de violencia intrafamiliar.",
-         "transporte":"Bus desde Bogotá (terminal occidente) · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Facatativá",
-         "dir":"Calle 8 #9-50, Facatativá","barrio":"Centro",
-         "lat":-74.3555,"lon":4.8145,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar. Apoyo psicosocial.",
-         "transporte":"Bus desde Bogotá (terminal occidente) · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Facatativá",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.3550,"lon":4.8150,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con la Línea 155 nacional.",
-         "transporte":"Llama al 155 — coordinan transporte seguro"},
-    ],
-    "fusagasugá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Fusagasugá",
-         "dir":"Cra 6 #8-20, Fusagasugá","barrio":"Centro",
-         "lat":-74.3640,"lon":4.3370,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Fusagasugá. Denuncias y emergencias.",
-         "transporte":"Bus Bogotá–Fusagasugá (1.5h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael Fusagasugá",
-         "dir":"Calle 7 #5-30, Fusagasugá","barrio":"Centro",
-         "lat":-74.3635,"lon":4.3375,"color":"#059669",
-         "href":"tel:8741516","phone":"874-1516","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal con urgencias. Atención médica y apoyo a víctimas de violencia.",
-         "transporte":"Bus desde Bogotá · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Fusagasugá",
-         "dir":"Cra 7 #9-15, Fusagasugá","barrio":"Centro",
-         "lat":-74.3645,"lon":4.3365,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección, conciliación y apoyo psicosocial gratuito.",
-         "transporte":"Bus desde Bogotá · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Fusagasugá",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.3640,"lon":4.3370,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155 nacional.",
-         "transporte":"Llama al 155 — coordinan transporte"},
-    ],
-    "girardot": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Girardot",
-         "dir":"Calle 8 #9-50, Girardot","barrio":"Centro",
-         "lat":-74.8020,"lon":4.3030,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Girardot. Denuncias y medidas de protección.",
-         "transporte":"Bus Bogotá–Girardot (2h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael Girardot",
-         "dir":"Cra 6 #25-50, Girardot","barrio":"Centro",
-         "lat":-74.8030,"lon":4.3025,"color":"#059669",
-         "href":"tel:8332020","phone":"833-2020","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y apoyo a víctimas.",
-         "transporte":"Bus desde Bogotá · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Girardot",
-         "dir":"Cra 7 #8-30, Girardot","barrio":"Centro",
-         "lat":-74.8015,"lon":4.3035,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Bogotá · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Girardot",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.8020,"lon":4.3030,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # ANTIOQUIA
-    # ══════════════════════════════════════════════════════════════════════════
-    "medellín": [
-        {"tipo":"Policía","icon":"🚔","nom":"CAI Centro Medellín",
-         "dir":"Carrera 45 #54-20, Medellín","barrio":"Centro",
-         "lat":-75.5742,"lon":6.2442,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Centro de Atención Inmediata. Atención permanente para denuncias y emergencias policiales.",
-         "transporte":"Metro: Prado (5 min caminando) · Bus: múltiples rutas Cra 45"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital General de Medellín",
-         "dir":"Calle 24 #29-6, Medellín","barrio":"Bomboná",
-         "lat":-75.5730,"lon":6.2358,"color":"#059669",
-         "href":"tel:4411227","phone":"444-1227","horario":"24/7 Urgencias",
-         "desc":"Hospital público con urgencias completas, medicina forense y apoyo psicológico para víctimas de violencia.",
-         "transporte":"Bus: rutas por Cll 24 · Metro: Industriales (12 min caminando)"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Medellín 24h",
-         "dir":"Calle 57 #45-129, Medellín","barrio":"Niquitao",
-         "lat":-75.5690,"lon":6.2570,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita.",
-         "transporte":"Metro: Hospital (10 min caminando) · Bus: Cll 57"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia N°1",
-         "dir":"Carrera 52 #48-10, Medellín","barrio":"El Centro",
-         "lat":-75.5700,"lon":6.2510,"color":"#0891B2",
-         "href":"tel:123","phone":"123 / Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección familiar, conciliación y apoyo psicosocial integral. Sin costo.",
-         "transporte":"Metro: Alpujarra (12 min caminando) · Bus: Cra 52"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Luz y Esperanza",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.5750,"lon":6.2420,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento temporal gratuito y seguro para mujeres víctimas de violencia y sus hijos.",
-         "transporte":"Llama al 155 para coordinación de transporte seguro y discreto"},
-        {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Medellín",
-         "dir":"Calle 50 #40-20, Medellín","barrio":"Prado",
-         "lat":-75.5720,"lon":6.2540,"color":"#8B5CF6",
-         "href":"tel:3856600","phone":"385-6600","horario":"Lun–Sáb 8am–8pm",
-         "desc":"Centro de Atención Integral a Víctimas. Psicología gratuita, terapia individual y grupos de apoyo.",
-         "transporte":"Bus: Cll 50 (múltiples rutas) · Metro: Prado (10 min caminando)"},
-    ],
-    "bello": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Bello",
-         "dir":"Cra 50 #34-20, Bello","barrio":"Centro",
-         "lat":-75.5590,"lon":6.3370,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Bello. Denuncias y medidas de protección inmediatas.",
-         "transporte":"Metro: Bello (5 min caminando)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Marco Fidel Suárez",
-         "dir":"Calle 30 #48-50, Bello","barrio":"Centro",
-         "lat":-75.5580,"lon":6.3380,"color":"#059669",
-         "href":"tel:4502050","phone":"450-2050","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal de Bello. Urgencias y apoyo a víctimas de violencia.",
-         "transporte":"Metro: Bello + bus alimentador"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Bello",
-         "dir":"Cra 51 #33-10, Bello","barrio":"Centro",
-         "lat":-75.5585,"lon":6.3375,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Metro: Bello (8 min caminando)"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Bello",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.5590,"lon":6.3370,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "itagüí": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Itagüí",
-         "dir":"Cra 52 #41-20, Itagüí","barrio":"Centro",
-         "lat":-75.6000,"lon":6.1850,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Itagüí. Denuncias y emergencias las 24 horas.",
-         "transporte":"Metro: Itagüí (8 min caminando)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital del Sur Itagüí",
-         "dir":"Calle 50 #55-30, Itagüí","barrio":"El Centro",
-         "lat":-75.5995,"lon":6.1860,"color":"#059669",
-         "href":"tel:3735600","phone":"373-5600","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Metro: Itagüí + taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Itagüí",
-         "dir":"Cra 53 #40-15, Itagüí","barrio":"Centro",
-         "lat":-75.6005,"lon":6.1845,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar y apoyo psicosocial.",
-         "transporte":"Metro: Itagüí (10 min caminando)"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Itagüí",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6000,"lon":6.1850,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "envigado": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Envigado",
-         "dir":"Cra 43C #36Sur-20, Envigado","barrio":"El Centro",
-         "lat":-75.5870,"lon":6.1750,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Envigado. Denuncias y medidas de protección.",
-         "transporte":"Metro: Envigado (10 min caminando)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Manuel Uribe Ángel",
-         "dir":"Calle 38Sur #50-50, Envigado","barrio":"El Centro",
-         "lat":-75.5865,"lon":6.1755,"color":"#059669",
-         "href":"tel:3390380","phone":"339-0380","horario":"24/7 Urgencias",
-         "desc":"Hospital de Envigado. Urgencias y apoyo a víctimas de violencia.",
-         "transporte":"Metro: Envigado + taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Envigado",
-         "dir":"Cra 44 #37Sur-10, Envigado","barrio":"El Centro",
-         "lat":-75.5875,"lon":6.1745,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección, conciliación y apoyo psicosocial.",
-         "transporte":"Metro: Envigado (12 min caminando)"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Envigado",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.5870,"lon":6.1750,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "apartadó": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Apartadó",
-         "dir":"Cra 100 #95-30, Apartadó","barrio":"Centro",
-         "lat":-76.6300,"lon":7.8800,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Apartadó. Denuncias y medidas de protección.",
-         "transporte":"Bus local · Mototaxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Antonio Roldán Betancur",
-         "dir":"Calle 90 #106-50, Apartadó","barrio":"Centro",
-         "lat":-76.6310,"lon":7.8810,"color":"#059669",
-         "href":"tel:8284040","phone":"828-4040","horario":"24/7 Urgencias",
-         "desc":"Hospital de Apartadó. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Apartadó",
-         "dir":"Cra 101 #94-20, Apartadó","barrio":"Centro",
-         "lat":-76.6295,"lon":7.8795,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Apartadó",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.6300,"lon":7.8800,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "turbo": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Turbo",
-         "dir":"Cra 14 #102-20, Turbo","barrio":"Centro",
-         "lat":-76.7260,"lon":8.0970,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Turbo. Denuncias y emergencias.",
-         "transporte":"Bus local · Mototaxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Francisco Valderrama",
-         "dir":"Calle 100 #12-50, Turbo","barrio":"Centro",
-         "lat":-76.7270,"lon":8.0980,"color":"#059669",
-         "href":"tel:8279000","phone":"827-9000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Turbo. Urgencias y atención a víctimas.",
-         "transporte":"Taxi · Bus local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Turbo",
-         "dir":"Cra 13 #101-30, Turbo","barrio":"Centro",
-         "lat":-76.7255,"lon":8.0965,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Turbo",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.7260,"lon":8.0970,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # VALLE DEL CAUCA
-    # ══════════════════════════════════════════════════════════════════════════
-    "cali": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Cali",
-         "dir":"Carrera 6 #10-35, Cali","barrio":"San Pedro",
-         "lat":-76.5320,"lon":3.4516,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana de Cali. Denuncias y medidas de protección inmediatas.",
-         "transporte":"MÍO: Estación San Bosco (7 min caminando)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario del Valle",
-         "dir":"Calle 5 #36-8, Cali","barrio":"San Fernando",
-         "lat":-76.5470,"lon":3.4500,"color":"#059669",
-         "href":"tel:5547374","phone":"554-7374","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias, medicina forense y atención psicológica para víctimas.",
-         "transporte":"MÍO: Estación Meléndez (10 min caminando)"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Cali 24h",
-         "dir":"Carrera 3 #17-08, Cali","barrio":"San Nicolás",
-         "lat":-76.5290,"lon":3.4553,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas.",
-         "transporte":"MÍO: Estación Belalcázar (5 min caminando)"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Cali",
-         "dir":"Cra 8 #9-56, Cali","barrio":"Centro",
-         "lat":-76.5310,"lon":3.4525,"color":"#0891B2",
-         "href":"tel:8816060","phone":"881-6060","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar. Apoyo psicosocial.",
-         "transporte":"MÍO: Estación Santa Librada (8 min caminando)"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Acogida Mujer Cali",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.5350,"lon":3.4490,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Refugio seguro y gratuito para mujeres en situación de violencia y sus hijos.",
-         "transporte":"Llama al 155 — coordinan transporte seguro"},
-        {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Cali",
-         "dir":"Carrera 5 #16-40, Cali","barrio":"El Peñón",
-         "lat":-76.5300,"lon":3.4560,"color":"#8B5CF6",
-         "href":"tel:8831434","phone":"883-1434","horario":"Lun–Vie 8am–5pm",
-         "desc":"Centro de Atención Integral a Víctimas de Violencia Sexual. Atención gratuita.",
-         "transporte":"MÍO: Estación Chapinero (12 min caminando)"},
-    ],
-    "palmira": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Palmira",
-         "dir":"Cra 29 #28-50, Palmira","barrio":"Centro",
-         "lat":-76.3030,"lon":3.5330,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Palmira. Denuncias y medidas de protección.",
-         "transporte":"Bus Cali–Palmira (45 min) · MÍO conexión"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Raúl Orejuela Bueno",
-         "dir":"Calle 28 #26-25, Palmira","barrio":"Centro",
-         "lat":-76.3025,"lon":3.5335,"color":"#059669",
-         "href":"tel:2744848","phone":"274-4848","horario":"24/7 Urgencias",
-         "desc":"Hospital de Palmira. Urgencias y apoyo a víctimas de violencia.",
-         "transporte":"Bus desde Cali · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Palmira",
-         "dir":"Cra 30 #27-10, Palmira","barrio":"Centro",
-         "lat":-76.3035,"lon":3.5325,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Cali · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Palmira",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.3030,"lon":3.5330,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "buenaventura": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Buenaventura",
-         "dir":"Cra 5 #2-30, Buenaventura","barrio":"El Centro",
-         "lat":-77.0240,"lon":3.8850,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Buenaventura. Denuncias y emergencias.",
-         "transporte":"Bus desde Cali (3h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Luis Ablanque de la Plata",
-         "dir":"Calle 3 #3-50, Buenaventura","barrio":"El Centro",
-         "lat":-77.0235,"lon":3.8855,"color":"#059669",
-         "href":"tel:2428080","phone":"242-8080","horario":"24/7 Urgencias",
-         "desc":"Principal hospital de Buenaventura. Urgencias y medicina forense.",
-         "transporte":"Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Buenaventura",
-         "dir":"Cra 6 #1-40, Buenaventura","barrio":"El Centro",
-         "lat":-77.0245,"lon":3.8845,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar y apoyo psicosocial.",
-         "transporte":"Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Buenaventura",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-77.0240,"lon":3.8850,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "tuluá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Tuluá",
-         "dir":"Cra 26 #24-30, Tuluá","barrio":"Centro",
-         "lat":-76.2000,"lon":4.0850,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Tuluá. Denuncias y medidas de protección.",
-         "transporte":"Bus Cali–Tuluá (1.5h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Tomás Uribe Uribe",
-         "dir":"Calle 25 #27-50, Tuluá","barrio":"Centro",
-         "lat":-76.2010,"lon":4.0860,"color":"#059669",
-         "href":"tel:2243000","phone":"224-3000","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y apoyo a víctimas.",
-         "transporte":"Bus desde Cali · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Tuluá",
-         "dir":"Cra 27 #23-40, Tuluá","barrio":"Centro",
-         "lat":-76.1995,"lon":4.0845,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Cali · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Tuluá",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.2000,"lon":4.0850,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "buga": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Buga",
-         "dir":"Cra 14 #6-20, Buga","barrio":"Centro",
-         "lat":-76.3000,"lon":3.9000,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Guadalajara de Buga. Denuncias y emergencias.",
-         "transporte":"Bus desde Cali (1.5h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Juan de Dios Buga",
-         "dir":"Calle 8 #13-50, Buga","barrio":"Centro",
-         "lat":-76.3005,"lon":3.9005,"color":"#059669",
-         "href":"tel:2368888","phone":"236-8888","horario":"24/7 Urgencias",
-         "desc":"Hospital de Buga. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Bus desde Cali · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Buga",
-         "dir":"Cra 15 #5-30, Buga","barrio":"Centro",
-         "lat":-76.2995,"lon":3.8995,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Cali · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Buga",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.3000,"lon":3.9000,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # ATLÁNTICO
-    # ══════════════════════════════════════════════════════════════════════════
-    "barranquilla": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro",
-         "dir":"Calle 35 #43-50, Barranquilla","barrio":"El Centro",
-         "lat":-74.7964,"lon":10.9639,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana de Barranquilla. Denuncias y emergencias.",
-         "transporte":"Bus: Cll 35 (múltiples rutas)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario CARI",
-         "dir":"Calle 23 #16-16, Barranquilla","barrio":"Barrio Abajo",
-         "lat":-74.7896,"lon":10.9822,"color":"#059669",
-         "href":"tel:3440001","phone":"344-0001","horario":"24/7 Urgencias",
-         "desc":"Hospital público. Urgencias, medicina forense y apoyo psicológico para víctimas de violencia.",
-         "transporte":"Bus: Cll 23 (rutas directas)"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Barranquilla",
-         "dir":"Calle 32 #51-12, Barranquilla","barrio":"San Roque",
-         "lat":-74.8130,"lon":10.9630,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Denuncias penales urgentes las 24 horas, sin necesidad de cita previa.",
-         "transporte":"Bus: Av. Murillo (5 min caminando)"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Barranquilla",
-         "dir":"Cra 46 #48-50, Barranquilla","barrio":"Centro",
-         "lat":-74.8050,"lon":10.9600,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus: Av. Olaya Herrera (rutas directas)"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Barranquilla",
-         "dir":"Dirección confidencial — Línea 155","barrio":"Confidencial",
-         "lat":-74.8000,"lon":10.9650,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro y gratuito para mujeres víctimas de violencia.",
-         "transporte":"Llama al 155 — coordinan transporte seguro y discreto"},
-    ],
-    "soledad": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Soledad",
-         "dir":"Cra 21 #18-30, Soledad","barrio":"Centro",
-         "lat":-74.7670,"lon":10.9180,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Soledad. Denuncias y emergencias las 24 horas.",
-         "transporte":"Bus desde Barranquilla (20 min) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital de Soledad",
-         "dir":"Calle 18 #19-50, Soledad","barrio":"Centro",
-         "lat":-74.7665,"lon":10.9185,"color":"#059669",
-         "href":"tel:3751515","phone":"375-1515","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal de Soledad. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Barranquilla · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Soledad",
-         "dir":"Cra 22 #17-40, Soledad","barrio":"Centro",
-         "lat":-74.7675,"lon":10.9175,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Barranquilla · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Soledad",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.7670,"lon":10.9180,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "malambo": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Malambo",
-         "dir":"Cra 5 #8-20, Malambo","barrio":"Centro",
-         "lat":-74.7730,"lon":10.8550,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Malambo. Denuncias y emergencias.",
-         "transporte":"Bus desde Barranquilla (25 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital de Malambo",
-         "dir":"Calle 9 #4-50, Malambo","barrio":"Centro",
-         "lat":-74.7725,"lon":10.8555,"color":"#059669",
-         "href":"tel:3682200","phone":"368-2200","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Barranquilla · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Malambo",
-         "dir":"Cra 6 #7-30, Malambo","barrio":"Centro",
-         "lat":-74.7735,"lon":10.8545,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Barranquilla · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Malambo",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.7730,"lon":10.8550,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "sabanagrande": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Sabanagrande",
-         "dir":"Cra 6 #4-20, Sabanagrande","barrio":"Centro",
-         "lat":-74.7560,"lon":10.7900,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Sabanagrande. Denuncias y emergencias.",
-         "transporte":"Bus desde Barranquilla · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Centro de Salud Sabanagrande",
-         "dir":"Calle 5 #5-30, Sabanagrande","barrio":"Centro",
-         "lat":-74.7555,"lon":10.7905,"color":"#059669",
-         "href":"tel:3211234","phone":"321-1234","horario":"Lun–Dom 6am–10pm · Urgencias básicas",
-         "desc":"Centro de salud municipal. Para urgencias críticas remite al HUB de Barranquilla.",
-         "transporte":"Bus o taxi desde Barranquilla"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Sabanagrande",
-         "dir":"Cra 7 #3-40, Sabanagrande","barrio":"Centro",
-         "lat":-74.7565,"lon":10.7895,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus o taxi desde Barranquilla"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Sabanagrande",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.7560,"lon":10.7900,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Coordinado con Línea 155. Transporte discreto a refugio seguro.",
-         "transporte":"Llama al 155"},
-    ],
-    "sabanalarga": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Sabanalarga",
-         "dir":"Cra 18 #8-30, Sabanalarga","barrio":"Centro",
-         "lat":-74.9210,"lon":10.6320,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Sabanalarga. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Barranquilla (45 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental de Sabanalarga",
-         "dir":"Calle 9 #20-50, Sabanalarga","barrio":"Centro",
-         "lat":-74.9215,"lon":10.6325,"color":"#059669",
-         "href":"tel:8491000","phone":"849-1000","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Barranquilla · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Sabanalarga",
-         "dir":"Cra 17 #9-20, Sabanalarga","barrio":"Centro",
-         "lat":-74.9205,"lon":10.6315,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Barranquilla · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Sabanalarga",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.9210,"lon":10.6320,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # SANTANDER
-    # ══════════════════════════════════════════════════════════════════════════
-    "bucaramanga": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Cabecera",
-         "dir":"Cra 35 #48-70, Bucaramanga","barrio":"Cabecera del Llano",
-         "lat":-73.1198,"lon":7.0810,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana. Denuncias y medidas de protección inmediatas.",
-         "transporte":"Bus: Cra 35 (múltiples rutas)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario de Santander",
-         "dir":"Carrera 33 #28-126, Bucaramanga","barrio":"Centro",
-         "lat":-73.1250,"lon":7.1185,"color":"#059669",
-         "href":"tel:6346110","phone":"634-6110","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus: Av. Quebrada Seca (rutas directas)"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Bucaramanga",
-         "dir":"Calle 36 #22-50, Bucaramanga","barrio":"Centro",
-         "lat":-73.1260,"lon":7.1198,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias las 24 horas.",
-         "transporte":"Bus: Cll 36 (rutas directas)"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Bucaramanga",
-         "dir":"Cra 20 #34-55, Bucaramanga","barrio":"Centro",
-         "lat":-73.1245,"lon":7.1195,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar y apoyo psicosocial.",
-         "transporte":"Bus: rutas Centro"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Bucaramanga",
-         "dir":"Dirección confidencial — Línea 155","barrio":"Confidencial",
-         "lat":-73.1200,"lon":7.1150,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro para mujeres víctimas de violencia.",
-         "transporte":"Llama al 155 — coordinan transporte seguro"},
-    ],
-    "floridablanca": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Floridablanca",
-         "dir":"Cra 8 #5-30, Floridablanca","barrio":"El Centro",
-         "lat":-73.0890,"lon":7.0640,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Floridablanca. Denuncias y emergencias.",
-         "transporte":"Bus desde Bucaramanga (20 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Manuela Beltrán Floridablanca",
-         "dir":"Calle 6 #9-20, Floridablanca","barrio":"Centro",
-         "lat":-73.0885,"lon":7.0645,"color":"#059669",
-         "href":"tel:6382222","phone":"638-2222","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y apoyo a víctimas de violencia.",
-         "transporte":"Bus desde Bucaramanga · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Floridablanca",
-         "dir":"Cra 9 #4-40, Floridablanca","barrio":"Centro",
-         "lat":-73.0895,"lon":7.0635,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Bucaramanga · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Floridablanca",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.0890,"lon":7.0640,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "girón": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Girón",
-         "dir":"Cra 26 #12-30, Girón","barrio":"Centro",
-         "lat":-73.1680,"lon":7.0740,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Girón. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Bucaramanga (15 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Juan de Dios Girón",
-         "dir":"Calle 14 #24-50, Girón","barrio":"Centro",
-         "lat":-73.1685,"lon":7.0745,"color":"#059669",
-         "href":"tel:6466300","phone":"646-6300","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal de Girón. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Bucaramanga · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Girón",
-         "dir":"Cra 27 #11-40, Girón","barrio":"Centro",
-         "lat":-73.1675,"lon":7.0735,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Bucaramanga · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Girón",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.1680,"lon":7.0740,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "piedecuesta": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Piedecuesta",
-         "dir":"Cra 10 #6-30, Piedecuesta","barrio":"Centro",
-         "lat":-73.0500,"lon":6.9870,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Piedecuesta. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Bucaramanga (25 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Integrado San Juan de Dios Piedecuesta",
-         "dir":"Calle 8 #11-50, Piedecuesta","barrio":"Centro",
-         "lat":-73.0505,"lon":6.9875,"color":"#059669",
-         "href":"tel:6488100","phone":"648-8100","horario":"24/7 Urgencias",
-         "desc":"Hospital de Piedecuesta. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Bus desde Bucaramanga · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Piedecuesta",
-         "dir":"Cra 11 #5-20, Piedecuesta","barrio":"Centro",
-         "lat":-73.0495,"lon":6.9865,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Bucaramanga · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Piedecuesta",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.0500,"lon":6.9870,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "barrancabermeja": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Barrancabermeja",
-         "dir":"Cra 18 #34-20, Barrancabermeja","barrio":"Centro",
-         "lat":-73.8550,"lon":7.0640,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Barrancabermeja. Denuncias y medidas de protección.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael Barrancabermeja",
-         "dir":"Calle 43 #15-50, Barrancabermeja","barrio":"Centro",
-         "lat":-73.8560,"lon":7.0645,"color":"#059669",
-         "href":"tel:6202050","phone":"620-2050","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Barrancabermeja",
-         "dir":"Cra 17 #35-40, Barrancabermeja","barrio":"Centro",
-         "lat":-73.8545,"lon":7.0635,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Barrancabermeja",
-         "dir":"Cra 19 #33-30, Barrancabermeja","barrio":"Centro",
-         "lat":-73.8555,"lon":7.0640,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Barrancabermeja",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.8550,"lon":7.0640,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # BOLÍVAR
-    # ══════════════════════════════════════════════════════════════════════════
-    "cartagena": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Cartagena",
-         "dir":"Calle 34 #4-20, Cartagena","barrio":"Getsemaní",
-         "lat":-75.4790,"lon":10.3910,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana de Cartagena. Denuncias y medidas de protección.",
-         "transporte":"Bus: Av. Venezuela · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario del Caribe",
-         "dir":"Cra 6 #36-100, Cartagena","barrio":"Amberes",
-         "lat":-75.4780,"lon":10.3940,"color":"#059669",
-         "href":"tel:6564477","phone":"656-4477","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias, medicina forense y apoyo psicológico para víctimas.",
-         "transporte":"Bus: Av. Crisanto Luque · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Cartagena 24h",
-         "dir":"Clle 36 #8-50, Cartagena","barrio":"San Diego",
-         "lat":-75.4770,"lon":10.3950,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas.",
-         "transporte":"Taxi · Bus rutas centro histórico"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Cartagena",
-         "dir":"Cra 7 #35-50, Cartagena","barrio":"Centro",
-         "lat":-75.4775,"lon":10.3930,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar y apoyo psicosocial.",
-         "transporte":"Taxi · Bus al centro histórico"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Cartagena",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.4785,"lon":10.3920,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro para mujeres víctimas de violencia.",
-         "transporte":"Llama al 155 — coordinan transporte seguro"},
-    ],
-    "magangué": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Magangué",
-         "dir":"Cra 12 #16-30, Magangué","barrio":"Centro",
-         "lat":-74.7540,"lon":9.2400,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Magangué. Denuncias y emergencias.",
-         "transporte":"Bus o lancha desde Cartagena · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Juan de Dios Magangué",
-         "dir":"Calle 15 #13-50, Magangué","barrio":"Centro",
-         "lat":-74.7545,"lon":9.2405,"color":"#059669",
-         "href":"tel:6870050","phone":"687-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital de Magangué. Urgencias y atención a víctimas.",
-         "transporte":"Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Magangué",
-         "dir":"Cra 13 #14-40, Magangué","barrio":"Centro",
-         "lat":-74.7535,"lon":9.2395,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Magangué",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.7540,"lon":9.2400,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "turbaco": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Turbaco",
-         "dir":"Cra 5 #7-20, Turbaco","barrio":"Centro",
-         "lat":-75.4150,"lon":10.3290,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Turbaco. Denuncias y emergencias.",
-         "transporte":"Bus desde Cartagena (20 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Local de Turbaco",
-         "dir":"Calle 8 #4-50, Turbaco","barrio":"Centro",
-         "lat":-75.4155,"lon":10.3295,"color":"#059669",
-         "href":"tel:6602200","phone":"660-2200","horario":"24/7 Urgencias",
-         "desc":"Hospital local. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Cartagena · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Turbaco",
-         "dir":"Cra 6 #6-30, Turbaco","barrio":"Centro",
-         "lat":-75.4145,"lon":10.3285,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Cartagena · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Turbaco",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.4150,"lon":10.3290,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # NORTE DE SANTANDER
-    # ══════════════════════════════════════════════════════════════════════════
-    "cúcuta": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Cúcuta",
-         "dir":"Av. 4 #14-20, Cúcuta","barrio":"Centro",
-         "lat":-72.5080,"lon":7.8940,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana de Cúcuta. Denuncias y medidas de protección.",
-         "transporte":"Bus: Av. 4 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Erasmo Meoz",
-         "dir":"Av. 11E #1E-33, Cúcuta","barrio":"Comuneros",
-         "lat":-72.5090,"lon":7.8970,"color":"#059669",
-         "href":"tel:5783400","phone":"578-3400","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias, medicina forense y atención a víctimas.",
-         "transporte":"Bus: Av. 11E · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Cúcuta 24h",
-         "dir":"Calle 13 #5-30, Cúcuta","barrio":"Centro",
-         "lat":-72.5070,"lon":7.8935,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas.",
-         "transporte":"Bus: Centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Cúcuta",
-         "dir":"Cra 3 #15-40, Cúcuta","barrio":"Centro",
-         "lat":-72.5085,"lon":7.8930,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Cúcuta",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.5080,"lon":7.8940,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "ocaña": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Ocaña",
-         "dir":"Cra 12 #7-30, Ocaña","barrio":"Centro",
-         "lat":-73.3570,"lon":8.2390,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Ocaña. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Cúcuta (3h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Emiro Quintero Cañizares",
-         "dir":"Calle 9 #11-50, Ocaña","barrio":"Centro",
-         "lat":-73.3575,"lon":8.2395,"color":"#059669",
-         "href":"tel:5628000","phone":"562-8000","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Ocaña",
-         "dir":"Cra 13 #6-40, Ocaña","barrio":"Centro",
-         "lat":-73.3565,"lon":8.2385,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Ocaña",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.3570,"lon":8.2390,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "villa del rosario": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Villa del Rosario",
-         "dir":"Cra 8 #4-20, Villa del Rosario","barrio":"Centro",
-         "lat":-72.4700,"lon":7.8360,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Villa del Rosario. Denuncias y emergencias.",
-         "transporte":"Bus desde Cúcuta (15 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael Villa del Rosario",
-         "dir":"Calle 5 #9-50, Villa del Rosario","barrio":"Centro",
-         "lat":-72.4705,"lon":7.8365,"color":"#059669",
-         "href":"tel:5754400","phone":"575-4400","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Bus desde Cúcuta · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Villa del Rosario",
-         "dir":"Cra 9 #3-30, Villa del Rosario","barrio":"Centro",
-         "lat":-72.4695,"lon":7.8355,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Cúcuta · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Villa del Rosario",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.4700,"lon":7.8360,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "los patios": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Los Patios",
-         "dir":"Cra 6 #5-20, Los Patios","barrio":"Centro",
-         "lat":-72.4940,"lon":7.9200,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Los Patios. Denuncias y emergencias.",
-         "transporte":"Bus desde Cúcuta (10 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Juan de Dios Los Patios",
-         "dir":"Calle 6 #7-40, Los Patios","barrio":"Centro",
-         "lat":-72.4945,"lon":7.9205,"color":"#059669",
-         "href":"tel:5744800","phone":"574-4800","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Cúcuta · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Los Patios",
-         "dir":"Cra 7 #4-30, Los Patios","barrio":"Centro",
-         "lat":-72.4935,"lon":7.9195,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Cúcuta · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Los Patios",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.4940,"lon":7.9200,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # RISARALDA
-    # ══════════════════════════════════════════════════════════════════════════
-    "pereira": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Pereira",
-         "dir":"Cra 8 #20-35, Pereira","barrio":"Centro",
-         "lat":-75.6960,"lon":4.8140,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía Metropolitana de Pereira. Denuncias y emergencias.",
-         "transporte":"Megabús: Estación Centro (5 min caminando) · Bus: múltiples rutas"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario San Jorge",
-         "dir":"Cra 10 #18-16, Pereira","barrio":"El Centro",
-         "lat":-75.6950,"lon":4.8145,"color":"#059669",
-         "href":"tel:3335800","phone":"333-5800","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias, medicina forense y apoyo psicológico.",
-         "transporte":"Megabús: Centro · Bus: Cra 10"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Pereira 24h",
-         "dir":"Calle 19 #9-30, Pereira","barrio":"El Centro",
-         "lat":-75.6970,"lon":4.8150,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas.",
-         "transporte":"Megabús: Centro · Bus: Cll 19"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Pereira",
-         "dir":"Cra 9 #21-50, Pereira","barrio":"El Centro",
-         "lat":-75.6965,"lon":4.8148,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar y apoyo psicosocial.",
-         "transporte":"Megabús · Bus rutas centro"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Pereira",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6960,"lon":4.8140,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro para mujeres víctimas de violencia.",
-         "transporte":"Llama al 155 — coordinan transporte seguro"},
-    ],
-    "dosquebradas": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Dosquebradas",
-         "dir":"Cra 18 #25-10, Dosquebradas","barrio":"Centro",
-         "lat":-75.6710,"lon":4.8370,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Dosquebradas. Denuncias y emergencias.",
-         "transporte":"Megabús conexión Pereira–Dosquebradas · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Santa Mónica Dosquebradas",
-         "dir":"Calle 22 #20-50, Dosquebradas","barrio":"Santa Mónica",
-         "lat":-75.6705,"lon":4.8375,"color":"#059669",
-         "href":"tel:3306050","phone":"330-6050","horario":"24/7 Urgencias",
-         "desc":"Hospital de Dosquebradas. Urgencias y apoyo a víctimas de violencia.",
-         "transporte":"Bus desde Pereira · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Dosquebradas",
-         "dir":"Cra 19 #23-30, Dosquebradas","barrio":"Centro",
-         "lat":-75.6715,"lon":4.8365,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Pereira · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Dosquebradas",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6710,"lon":4.8370,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "santa rosa de cabal": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Santa Rosa de Cabal",
-         "dir":"Cra 14 #12-20, Santa Rosa de Cabal","barrio":"Centro",
-         "lat":-75.6200,"lon":4.8690,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Santa Rosa de Cabal. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Pereira (20 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Vicente de Paul Santa Rosa",
-         "dir":"Calle 13 #15-50, Santa Rosa de Cabal","barrio":"Centro",
-         "lat":-75.6205,"lon":4.8695,"color":"#059669",
-         "href":"tel:3681050","phone":"368-1050","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Bus desde Pereira · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Santa Rosa de Cabal",
-         "dir":"Cra 15 #11-30, Santa Rosa de Cabal","barrio":"Centro",
-         "lat":-75.6195,"lon":4.8685,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Pereira · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Santa Rosa de Cabal",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6200,"lon":4.8690,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "la virginia": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía La Virginia",
-         "dir":"Cra 8 #7-30, La Virginia","barrio":"Centro",
-         "lat":-75.8820,"lon":4.9010,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de La Virginia. Denuncias y emergencias.",
-         "transporte":"Bus desde Pereira (30 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Pedro y San Pablo La Virginia",
-         "dir":"Calle 8 #9-50, La Virginia","barrio":"Centro",
-         "lat":-75.8825,"lon":4.9015,"color":"#059669",
-         "href":"tel:3686000","phone":"368-6000","horario":"24/7 Urgencias",
-         "desc":"Hospital municipal. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Pereira · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia La Virginia",
-         "dir":"Cra 9 #6-20, La Virginia","barrio":"Centro",
-         "lat":-75.8815,"lon":4.9005,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Pereira · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer La Virginia",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.8820,"lon":4.9010,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CALDAS
-    # ══════════════════════════════════════════════════════════════════════════
-    "manizales": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Manizales",
-         "dir":"Cra 23 #22-10, Manizales","barrio":"El Centro",
-         "lat":-75.5200,"lon":5.0700,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Manizales. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 23 (rutas directas) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital de Caldas",
-         "dir":"Calle 23 #35-50, Manizales","barrio":"El Centro",
-         "lat":-75.5210,"lon":5.0710,"color":"#059669",
-         "href":"tel:8846560","phone":"884-6560","horario":"24/7 Urgencias",
-         "desc":"Hospital de Caldas. Urgencias, medicina forense y atención a víctimas.",
-         "transporte":"Bus: Cll 23 · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Manizales",
-         "dir":"Cra 22 #24-30, Manizales","barrio":"El Centro",
-         "lat":-75.5195,"lon":5.0705,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Manizales",
-         "dir":"Cra 24 #21-50, Manizales","barrio":"El Centro",
-         "lat":-75.5205,"lon":5.0695,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Manizales",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.5200,"lon":5.0700,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "la dorada": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía La Dorada",
-         "dir":"Cra 4 #15-20, La Dorada","barrio":"Centro",
-         "lat":-74.6660,"lon":5.4530,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de La Dorada. Denuncias y emergencias.",
-         "transporte":"Bus desde Manizales (2h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental Mario Correa Rengifo",
-         "dir":"Calle 14 #5-50, La Dorada","barrio":"Centro",
-         "lat":-74.6665,"lon":5.4535,"color":"#059669",
-         "href":"tel:8854000","phone":"885-4000","horario":"24/7 Urgencias",
-         "desc":"Hospital de La Dorada. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia La Dorada",
-         "dir":"Cra 5 #13-40, La Dorada","barrio":"Centro",
-         "lat":-74.6655,"lon":5.4525,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer La Dorada",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.6660,"lon":5.4530,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # QUINDÍO
-    # ══════════════════════════════════════════════════════════════════════════
-    "armenia": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Armenia",
-         "dir":"Cra 14 #20-30, Armenia","barrio":"El Centro",
-         "lat":-75.6810,"lon":4.5340,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Armenia. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 14 (rutas directas) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental San Juan de Dios",
-         "dir":"Calle 19 #16-50, Armenia","barrio":"El Centro",
-         "lat":-75.6820,"lon":4.5345,"color":"#059669",
-         "href":"tel:7491700","phone":"749-1700","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Armenia",
-         "dir":"Cra 13 #21-40, Armenia","barrio":"El Centro",
-         "lat":-75.6805,"lon":4.5335,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Armenia",
-         "dir":"Cra 15 #19-20, Armenia","barrio":"El Centro",
-         "lat":-75.6815,"lon":4.5338,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección y apoyo psicosocial.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Armenia",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6810,"lon":4.5340,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "calarcá": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Calarcá",
-         "dir":"Cra 25 #20-30, Calarcá","barrio":"Centro",
-         "lat":-75.6440,"lon":4.5240,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Calarcá. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Armenia (20 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital La Misericordia Calarcá",
-         "dir":"Calle 19 #27-50, Calarcá","barrio":"Centro",
-         "lat":-75.6445,"lon":4.5245,"color":"#059669",
-         "href":"tel:7420050","phone":"742-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital de Calarcá. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Armenia · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Calarcá",
-         "dir":"Cra 26 #19-20, Calarcá","barrio":"Centro",
-         "lat":-75.6435,"lon":4.5235,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Armenia · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Calarcá",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6440,"lon":4.5240,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # TOLIMA
-    # ══════════════════════════════════════════════════════════════════════════
-    "ibagué": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Ibagué",
-         "dir":"Cra 3 #10-20, Ibagué","barrio":"El Centro",
-         "lat":-75.2320,"lon":4.4380,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Ibagué. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 3 (rutas directas) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Federico Lleras Acosta",
-         "dir":"Cra 4 #20-50, Ibagué","barrio":"El Centro",
-         "lat":-75.2325,"lon":4.4385,"color":"#059669",
-         "href":"tel:2617200","phone":"261-7200","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias, medicina forense y atención a víctimas.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Ibagué",
-         "dir":"Clle 10 #3-50, Ibagué","barrio":"El Centro",
-         "lat":-75.2315,"lon":4.4375,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Ibagué",
-         "dir":"Cra 5 #9-30, Ibagué","barrio":"El Centro",
-         "lat":-75.2318,"lon":4.4382,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Ibagué",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.2320,"lon":4.4380,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "espinal": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Espinal",
-         "dir":"Cra 6 #8-20, Espinal","barrio":"Centro",
-         "lat":-74.8860,"lon":4.1530,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Espinal. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Ibagué (45 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael Espinal",
-         "dir":"Calle 7 #5-50, Espinal","barrio":"Centro",
-         "lat":-74.8865,"lon":4.1535,"color":"#059669",
-         "href":"tel:2485000","phone":"248-5000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Espinal. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Ibagué · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Espinal",
-         "dir":"Cra 7 #7-30, Espinal","barrio":"Centro",
-         "lat":-74.8855,"lon":4.1525,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Ibagué · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Espinal",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.8860,"lon":4.1530,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "melgar": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Melgar",
-         "dir":"Cra 8 #5-30, Melgar","barrio":"Centro",
-         "lat":-74.6370,"lon":4.2100,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Melgar. Denuncias y emergencias.",
-         "transporte":"Bus desde Bogotá (2.5h) o Ibagué (1h) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Antonio Melgar",
-         "dir":"Calle 6 #9-50, Melgar","barrio":"Centro",
-         "lat":-74.6375,"lon":4.2105,"color":"#059669",
-         "href":"tel:2452020","phone":"245-2020","horario":"24/7 Urgencias",
-         "desc":"Hospital de Melgar. Urgencias y atención a víctimas.",
-         "transporte":"Bus o taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Melgar",
-         "dir":"Cra 9 #4-20, Melgar","barrio":"Centro",
-         "lat":-74.6365,"lon":4.2095,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus o taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Melgar",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.6370,"lon":4.2100,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # NARIÑO
-    # ══════════════════════════════════════════════════════════════════════════
-    "pasto": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Pasto",
-         "dir":"Cra 27 #16-40, Pasto","barrio":"El Centro",
-         "lat":-77.2800,"lon":1.2140,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Pasto. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 27 (rutas directas) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario Departamental",
-         "dir":"Calle 22 #22-35, Pasto","barrio":"El Centro",
-         "lat":-77.2810,"lon":1.2145,"color":"#059669",
-         "href":"tel:7233040","phone":"723-3040","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Pasto",
-         "dir":"Cra 28 #15-60, Pasto","barrio":"El Centro",
-         "lat":-77.2795,"lon":1.2135,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Pasto",
-         "dir":"Calle 18 #24-20, Pasto","barrio":"El Centro",
-         "lat":-77.2805,"lon":1.2138,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Pasto",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-77.2800,"lon":1.2140,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "tumaco": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Tumaco",
-         "dir":"Cra 4 #8-30, Tumaco","barrio":"El Centro",
-         "lat":-78.8080,"lon":1.8090,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Tumaco. Denuncias y emergencias.",
-         "transporte":"Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Andrés de Tumaco",
-         "dir":"Calle 9 #3-50, Tumaco","barrio":"El Centro",
-         "lat":-78.8075,"lon":1.8095,"color":"#059669",
-         "href":"tel:7272800","phone":"727-2800","horario":"24/7 Urgencias",
-         "desc":"Hospital de Tumaco. Urgencias y atención a víctimas.",
-         "transporte":"Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Tumaco",
-         "dir":"Cra 5 #7-20, Tumaco","barrio":"El Centro",
-         "lat":-78.8085,"lon":1.8085,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Tumaco",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-78.8080,"lon":1.8090,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "ipiales": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Ipiales",
-         "dir":"Cra 6 #14-20, Ipiales","barrio":"Centro",
-         "lat":-77.6440,"lon":0.8280,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Ipiales. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Pasto (2h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Civil de Ipiales",
-         "dir":"Calle 13 #5-50, Ipiales","barrio":"Centro",
-         "lat":-77.6445,"lon":0.8285,"color":"#059669",
-         "href":"tel:7733000","phone":"773-3000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Ipiales. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Pasto · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Ipiales",
-         "dir":"Cra 7 #12-30, Ipiales","barrio":"Centro",
-         "lat":-77.6435,"lon":0.8275,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Pasto · Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Ipiales",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-77.6440,"lon":0.8280,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # HUILA
-    # ══════════════════════════════════════════════════════════════════════════
-    "neiva": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Neiva",
-         "dir":"Cra 5 #7-20, Neiva","barrio":"El Centro",
-         "lat":-75.2820,"lon":2.9350,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Neiva. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 5 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Hernando Moncaleano",
-         "dir":"Calle 9 #8-50, Neiva","barrio":"El Centro",
-         "lat":-75.2825,"lon":2.9355,"color":"#059669",
-         "href":"tel:8714400","phone":"871-4400","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Neiva",
-         "dir":"Cra 4 #8-30, Neiva","barrio":"El Centro",
-         "lat":-75.2815,"lon":2.9345,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Neiva",
-         "dir":"Cra 6 #6-40, Neiva","barrio":"El Centro",
-         "lat":-75.2818,"lon":2.9352,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Neiva",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.2820,"lon":2.9350,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "pitalito": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Pitalito",
-         "dir":"Cra 4 #5-20, Pitalito","barrio":"Centro",
-         "lat":-76.0540,"lon":1.8550,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Pitalito. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Neiva (3h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental San Antonio Pitalito",
-         "dir":"Calle 6 #3-50, Pitalito","barrio":"Centro",
-         "lat":-76.0545,"lon":1.8555,"color":"#059669",
-         "href":"tel:8360050","phone":"836-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Neiva · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Pitalito",
-         "dir":"Cra 5 #4-30, Pitalito","barrio":"Centro",
-         "lat":-76.0535,"lon":1.8545,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Neiva · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Pitalito",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.0540,"lon":1.8550,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # META
-    # ══════════════════════════════════════════════════════════════════════════
-    "villavicencio": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Villavicencio",
-         "dir":"Cra 34 #36-50, Villavicencio","barrio":"El Centro",
-         "lat":-73.6260,"lon":4.1420,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Villavicencio. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 34 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental de Villavicencio",
-         "dir":"Calle 38 #32-60, Villavicencio","barrio":"Barzal",
-         "lat":-73.6265,"lon":4.1425,"color":"#059669",
-         "href":"tel:6629700","phone":"662-9700","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Villavicencio",
-         "dir":"Cra 33 #37-40, Villavicencio","barrio":"El Centro",
-         "lat":-73.6255,"lon":4.1415,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Villavicencio",
-         "dir":"Cra 35 #35-20, Villavicencio","barrio":"El Centro",
-         "lat":-73.6258,"lon":4.1418,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Villavicencio",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.6260,"lon":4.1420,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "acacías": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Acacías",
-         "dir":"Cra 15 #12-20, Acacías","barrio":"Centro",
-         "lat":-73.7590,"lon":3.9880,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Acacías. Denuncias y emergencias.",
-         "transporte":"Bus desde Villavicencio (30 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Cristóbal Acacías",
-         "dir":"Calle 13 #16-50, Acacías","barrio":"Centro",
-         "lat":-73.7595,"lon":3.9885,"color":"#059669",
-         "href":"tel:6566000","phone":"656-6000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Acacías. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Villavicencio · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Acacías",
-         "dir":"Cra 16 #11-30, Acacías","barrio":"Centro",
-         "lat":-73.7585,"lon":3.9875,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Villavicencio · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Acacías",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.7590,"lon":3.9880,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # MAGDALENA
-    # ══════════════════════════════════════════════════════════════════════════
-    "santa marta": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Santa Marta",
-         "dir":"Cra 3 #16-40, Santa Marta","barrio":"El Centro",
-         "lat":-74.2000,"lon":11.2400,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Santa Marta. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 3 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Central Julio Méndez Barreneche",
-         "dir":"Calle 30 #3-50, Santa Marta","barrio":"El Prado",
-         "lat":-74.2010,"lon":11.2410,"color":"#059669",
-         "href":"tel:4310660","phone":"431-0660","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Santa Marta",
-         "dir":"Cra 4 #17-30, Santa Marta","barrio":"El Centro",
-         "lat":-74.1995,"lon":11.2395,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Santa Marta",
-         "dir":"Cra 5 #15-20, Santa Marta","barrio":"El Centro",
-         "lat":-74.2005,"lon":11.2398,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Santa Marta",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.2000,"lon":11.2400,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "ciénaga": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Ciénaga",
-         "dir":"Cra 8 #12-30, Ciénaga","barrio":"Centro",
-         "lat":-74.2510,"lon":11.0050,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Ciénaga. Denuncias y emergencias.",
-         "transporte":"Bus desde Santa Marta (30 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Cristóbal Ciénaga",
-         "dir":"Calle 11 #9-50, Ciénaga","barrio":"Centro",
-         "lat":-74.2515,"lon":11.0055,"color":"#059669",
-         "href":"tel:4209000","phone":"420-9000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Ciénaga. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Santa Marta · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Ciénaga",
-         "dir":"Cra 9 #11-20, Ciénaga","barrio":"Centro",
-         "lat":-74.2505,"lon":11.0045,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Santa Marta · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Ciénaga",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-74.2510,"lon":11.0050,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CÓRDOBA
-    # ══════════════════════════════════════════════════════════════════════════
-    "montería": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Montería",
-         "dir":"Cra 6 #29-30, Montería","barrio":"El Centro",
-         "lat":-75.8800,"lon":8.7570,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Montería. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 6 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Jerónimo de Montería",
-         "dir":"Calle 25 #4-80, Montería","barrio":"Montería 2000",
-         "lat":-75.8810,"lon":8.7575,"color":"#059669",
-         "href":"tel:7895870","phone":"789-5870","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Montería",
-         "dir":"Cra 5 #28-50, Montería","barrio":"El Centro",
-         "lat":-75.8795,"lon":8.7565,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Montería",
-         "dir":"Cra 7 #27-40, Montería","barrio":"El Centro",
-         "lat":-75.8805,"lon":8.7568,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Montería",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.8800,"lon":8.7570,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "cereté": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Cereté",
-         "dir":"Cra 10 #8-20, Cereté","barrio":"Centro",
-         "lat":-75.7920,"lon":8.8820,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Cereté. Denuncias y emergencias.",
-         "transporte":"Bus desde Montería (20 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Vicente de Paul Cereté",
-         "dir":"Calle 9 #11-50, Cereté","barrio":"Centro",
-         "lat":-75.7925,"lon":8.8825,"color":"#059669",
-         "href":"tel:7878000","phone":"787-8000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Cereté. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Montería · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Cereté",
-         "dir":"Cra 11 #7-30, Cereté","barrio":"Centro",
-         "lat":-75.7915,"lon":8.8815,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Montería · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Cereté",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.7920,"lon":8.8820,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # SUCRE
-    # ══════════════════════════════════════════════════════════════════════════
-    "sincelejo": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Sincelejo",
-         "dir":"Cra 20 #25-30, Sincelejo","barrio":"El Centro",
-         "lat":-75.3980,"lon":9.3050,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Sincelejo. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 20 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario de Sincelejo",
-         "dir":"Calle 23 #21-50, Sincelejo","barrio":"El Centro",
-         "lat":-75.3985,"lon":9.3055,"color":"#059669",
-         "href":"tel:2823232","phone":"282-3232","horario":"24/7 Urgencias",
-         "desc":"Hospital de Sincelejo. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Sincelejo",
-         "dir":"Cra 21 #24-20, Sincelejo","barrio":"El Centro",
-         "lat":-75.3975,"lon":9.3045,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Sincelejo",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.3980,"lon":9.3050,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "corozal": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Corozal",
-         "dir":"Cra 18 #20-30, Corozal","barrio":"Centro",
-         "lat":-75.2920,"lon":9.3180,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Corozal. Denuncias y emergencias.",
-         "transporte":"Bus desde Sincelejo (30 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Regional San Francisco de Asís Corozal",
-         "dir":"Calle 19 #19-50, Corozal","barrio":"Centro",
-         "lat":-75.2925,"lon":9.3185,"color":"#059669",
-         "href":"tel:2860050","phone":"286-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital de Corozal. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Sincelejo · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Corozal",
-         "dir":"Cra 19 #21-20, Corozal","barrio":"Centro",
-         "lat":-75.2915,"lon":9.3175,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Sincelejo · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Corozal",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.2920,"lon":9.3180,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CESAR
-    # ══════════════════════════════════════════════════════════════════════════
-    "valledupar": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Valledupar",
-         "dir":"Cra 7 #16-30, Valledupar","barrio":"El Centro",
-         "lat":-73.2500,"lon":10.4770,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Valledupar. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 7 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Eduardo Arredondo Daza",
-         "dir":"Calle 18 #8-50, Valledupar","barrio":"El Centro",
-         "lat":-73.2505,"lon":10.4775,"color":"#059669",
-         "href":"tel:5740403","phone":"574-0403","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Valledupar",
-         "dir":"Cra 8 #15-40, Valledupar","barrio":"El Centro",
-         "lat":-73.2495,"lon":10.4765,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Valledupar",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.2500,"lon":10.4770,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "aguachica": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Aguachica",
-         "dir":"Cra 12 #8-20, Aguachica","barrio":"Centro",
-         "lat":-73.6190,"lon":8.3070,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Aguachica. Denuncias y emergencias.",
-         "transporte":"Bus desde Valledupar (3h) o Bucaramanga (4h) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Regional Noroccidental Aguachica",
-         "dir":"Calle 9 #13-50, Aguachica","barrio":"Centro",
-         "lat":-73.6195,"lon":8.3075,"color":"#059669",
-         "href":"tel:5671000","phone":"567-1000","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Aguachica",
-         "dir":"Cra 13 #7-30, Aguachica","barrio":"Centro",
-         "lat":-73.6185,"lon":8.3065,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Aguachica",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.6190,"lon":8.3070,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # BOYACÁ
-    # ══════════════════════════════════════════════════════════════════════════
-    "tunja": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Tunja",
-         "dir":"Cra 10 #20-30, Tunja","barrio":"El Centro",
-         "lat":-73.3680,"lon":5.5350,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Tunja. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 10 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Regional de Boyacá",
-         "dir":"Calle 18 #11-22, Tunja","barrio":"El Centro",
-         "lat":-73.3685,"lon":5.5355,"color":"#059669",
-         "href":"tel:7426666","phone":"742-6666","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Tunja",
-         "dir":"Cra 9 #21-50, Tunja","barrio":"El Centro",
-         "lat":-73.3675,"lon":5.5345,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Tunja",
-         "dir":"Cra 11 #19-40, Tunja","barrio":"El Centro",
-         "lat":-73.3678,"lon":5.5348,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Tunja",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.3680,"lon":5.5350,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "duitama": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Duitama",
-         "dir":"Cra 18 #14-20, Duitama","barrio":"Centro",
-         "lat":-73.0320,"lon":5.8270,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Duitama. Denuncias y medidas de protección.",
-         "transporte":"Bus desde Tunja (1h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Regional de Duitama",
-         "dir":"Cra 20 #12-50, Duitama","barrio":"Centro",
-         "lat":-73.0325,"lon":5.8275,"color":"#059669",
-         "href":"tel:7600050","phone":"760-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Tunja · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Duitama",
-         "dir":"Cra 19 #13-30, Duitama","barrio":"Centro",
-         "lat":-73.0315,"lon":5.8265,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Tunja · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Duitama",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-73.0320,"lon":5.8270,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "sogamoso": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Sogamoso",
-         "dir":"Cra 11 #10-30, Sogamoso","barrio":"Centro",
-         "lat":-72.9310,"lon":5.7140,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Sogamoso. Denuncias y emergencias.",
-         "transporte":"Bus desde Tunja (1.5h) · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Regional de Sogamoso",
-         "dir":"Cra 13 #8-50, Sogamoso","barrio":"Centro",
-         "lat":-72.9315,"lon":5.7145,"color":"#059669",
-         "href":"tel:7702000","phone":"770-2000","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Tunja · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Sogamoso",
-         "dir":"Cra 12 #9-20, Sogamoso","barrio":"Centro",
-         "lat":-72.9305,"lon":5.7135,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Tunja · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Sogamoso",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.9310,"lon":5.7140,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CAUCA
-    # ══════════════════════════════════════════════════════════════════════════
-    "popayán": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Popayán",
-         "dir":"Cra 7 #5-30, Popayán","barrio":"El Centro",
-         "lat":-76.6060,"lon":2.4410,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Popayán. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 7 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario San José",
-         "dir":"Cra 6 #8-60, Popayán","barrio":"El Centro",
-         "lat":-76.6065,"lon":2.4415,"color":"#059669",
-         "href":"tel:8241000","phone":"824-1000","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Popayán",
-         "dir":"Cra 8 #4-50, Popayán","barrio":"El Centro",
-         "lat":-76.6055,"lon":2.4405,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Popayán",
-         "dir":"Cra 7 #7-20, Popayán","barrio":"El Centro",
-         "lat":-76.6058,"lon":2.4408,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Popayán",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.6060,"lon":2.4410,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "santander de quilichao": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Santander de Quilichao",
-         "dir":"Cra 10 #6-30, Santander de Quilichao","barrio":"Centro",
-         "lat":-76.4840,"lon":3.0120,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Santander de Quilichao. Denuncias y emergencias.",
-         "transporte":"Bus desde Cali (1h) o Popayán (1h) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Susana López de Valencia",
-         "dir":"Cra 11 #5-50, Santander de Quilichao","barrio":"Centro",
-         "lat":-76.4845,"lon":3.0125,"color":"#059669",
-         "href":"tel:8278000","phone":"827-8000","horario":"24/7 Urgencias",
-         "desc":"Hospital de mediana complejidad. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Cali o Popayán · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Santander de Quilichao",
-         "dir":"Cra 12 #4-20, Santander de Quilichao","barrio":"Centro",
-         "lat":-76.4835,"lon":3.0115,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Santander de Quilichao",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.4840,"lon":3.0120,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # LA GUAJIRA
-    # ══════════════════════════════════════════════════════════════════════════
-    "riohacha": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Riohacha",
-         "dir":"Cra 7 #3-20, Riohacha","barrio":"El Centro",
-         "lat":-72.9080,"lon":11.5440,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Riohacha. Denuncias y medidas de protección.",
-         "transporte":"Bus: Cra 7 (rutas directas) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Nuestra Señora de los Remedios",
-         "dir":"Cra 8 #10-50, Riohacha","barrio":"El Centro",
-         "lat":-72.9085,"lon":11.5445,"color":"#059669",
-         "href":"tel:7272222","phone":"727-2222","horario":"24/7 Urgencias",
-         "desc":"Hospital de Riohacha. Urgencias y atención a víctimas.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Riohacha",
-         "dir":"Cra 9 #9-30, Riohacha","barrio":"El Centro",
-         "lat":-72.9075,"lon":11.5435,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus al centro · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Riohacha",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.9080,"lon":11.5440,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "maicao": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Maicao",
-         "dir":"Cra 10 #14-20, Maicao","barrio":"Centro",
-         "lat":-72.2430,"lon":11.3780,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Maicao. Denuncias y emergencias.",
-         "transporte":"Bus desde Riohacha (1.5h) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San José Maicao",
-         "dir":"Calle 13 #11-50, Maicao","barrio":"Centro",
-         "lat":-72.2435,"lon":11.3785,"color":"#059669",
-         "href":"tel:7266000","phone":"726-6000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Maicao. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Riohacha · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Maicao",
-         "dir":"Cra 11 #12-30, Maicao","barrio":"Centro",
-         "lat":-72.2425,"lon":11.3775,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Riohacha · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Maicao",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.2430,"lon":11.3780,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CASANARE
-    # ══════════════════════════════════════════════════════════════════════════
-    "yopal": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Yopal",
-         "dir":"Cra 22 #16-30, Yopal","barrio":"Centro",
-         "lat":-72.3950,"lon":5.3380,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Yopal. Denuncias y medidas de protección.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Regional de Yopal",
-         "dir":"Calle 17 #24-50, Yopal","barrio":"Centro",
-         "lat":-72.3955,"lon":5.3385,"color":"#059669",
-         "href":"tel:6349000","phone":"634-9000","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Yopal",
-         "dir":"Cra 23 #15-40, Yopal","barrio":"Centro",
-         "lat":-72.3945,"lon":5.3375,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Yopal",
-         "dir":"Cra 24 #14-20, Yopal","barrio":"Centro",
-         "lat":-72.3948,"lon":5.3378,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Yopal",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.3950,"lon":5.3380,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "aguazul": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Aguazul",
-         "dir":"Cra 18 #10-20, Aguazul","barrio":"Centro",
-         "lat":-72.5510,"lon":5.1700,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Aguazul. Denuncias y emergencias.",
-         "transporte":"Bus desde Yopal (30 min) · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Municipal de Aguazul",
-         "dir":"Calle 11 #19-50, Aguazul","barrio":"Centro",
-         "lat":-72.5515,"lon":5.1705,"color":"#059669",
-         "href":"tel:6356000","phone":"635-6000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Aguazul. Urgencias y atención a víctimas.",
-         "transporte":"Bus desde Yopal · Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Aguazul",
-         "dir":"Cra 19 #9-30, Aguazul","barrio":"Centro",
-         "lat":-72.5505,"lon":5.1695,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus desde Yopal · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Aguazul",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.5510,"lon":5.1700,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # ARAUCA
-    # ══════════════════════════════════════════════════════════════════════════
-    "arauca": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Arauca",
-         "dir":"Cra 20 #19-30, Arauca","barrio":"Centro",
-         "lat":-70.7620,"lon":7.0900,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Arauca. Denuncias y medidas de protección.",
-         "transporte":"Taxi local · Bus urbano"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Juan de Dios Arauca",
-         "dir":"Calle 18 #21-50, Arauca","barrio":"Centro",
-         "lat":-70.7625,"lon":7.0905,"color":"#059669",
-         "href":"tel:8856000","phone":"885-6000","horario":"24/7 Urgencias",
-         "desc":"Hospital departamental. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Taxi local"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Arauca",
-         "dir":"Cra 21 #17-40, Arauca","barrio":"Centro",
-         "lat":-70.7615,"lon":7.0895,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Arauca",
-         "dir":"Cra 22 #16-20, Arauca","barrio":"Centro",
-         "lat":-70.7618,"lon":7.0898,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Arauca",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-70.7620,"lon":7.0900,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "saravena": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Saravena",
-         "dir":"Cra 14 #6-20, Saravena","barrio":"Centro",
-         "lat":-71.8620,"lon":6.9560,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Saravena. Denuncias y emergencias.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Antonio Saravena",
-         "dir":"Calle 7 #15-50, Saravena","barrio":"Centro",
-         "lat":-71.8625,"lon":6.9565,"color":"#059669",
-         "href":"tel:8862000","phone":"886-2000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Saravena. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Saravena",
-         "dir":"Cra 15 #5-30, Saravena","barrio":"Centro",
-         "lat":-71.8615,"lon":6.9555,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Saravena",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-71.8620,"lon":6.9560,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # PUTUMAYO
-    # ══════════════════════════════════════════════════════════════════════════
-    "mocoa": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Mocoa",
-         "dir":"Cra 10 #8-20, Mocoa","barrio":"Centro",
-         "lat":-76.6480,"lon":1.1480,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Mocoa. Denuncias y medidas de protección.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental de Mocoa",
-         "dir":"Calle 9 #11-50, Mocoa","barrio":"Centro",
-         "lat":-76.6485,"lon":1.1485,"color":"#059669",
-         "href":"tel:4206000","phone":"420-6000","horario":"24/7 Urgencias",
-         "desc":"Hospital de Mocoa. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Mocoa",
-         "dir":"Cra 11 #7-30, Mocoa","barrio":"Centro",
-         "lat":-76.6475,"lon":1.1475,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Mocoa",
-         "dir":"Cra 12 #6-20, Mocoa","barrio":"Centro",
-         "lat":-76.6478,"lon":1.1478,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Mocoa",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.6480,"lon":1.1480,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-    "puerto asís": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Puerto Asís",
-         "dir":"Cra 22 #8-20, Puerto Asís","barrio":"Centro",
-         "lat":-76.4980,"lon":0.5060,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Puerto Asís. Denuncias y emergencias.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Porfirio Rodrígues Puerto Asís",
-         "dir":"Calle 9 #23-50, Puerto Asís","barrio":"Centro",
-         "lat":-76.4985,"lon":0.5065,"color":"#059669",
-         "href":"tel:4350050","phone":"435-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital de Puerto Asís. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Puerto Asís",
-         "dir":"Cra 23 #7-30, Puerto Asís","barrio":"Centro",
-         "lat":-76.4975,"lon":0.5055,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Puerto Asís",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.4980,"lon":0.5060,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CHOCÓ
-    # ══════════════════════════════════════════════════════════════════════════
-    "quibdó": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Quibdó",
-         "dir":"Cra 2 #24-30, Quibdó","barrio":"Centro",
-         "lat":-76.6570,"lon":5.6940,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Quibdó. Denuncias y medidas de protección.",
-         "transporte":"Bus local · Taxi · Lancha fluvial"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Francisco de Asís Quibdó",
-         "dir":"Calle 23 #3-50, Quibdó","barrio":"Centro",
-         "lat":-76.6575,"lon":5.6945,"color":"#059669",
-         "href":"tel:6727000","phone":"672-7000","horario":"24/7 Urgencias",
-         "desc":"Hospital departamental. Urgencias y atención a víctimas.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Quibdó",
-         "dir":"Cra 3 #22-40, Quibdó","barrio":"Centro",
-         "lat":-76.6565,"lon":5.6935,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Quibdó",
-         "dir":"Cra 4 #21-20, Quibdó","barrio":"Centro",
-         "lat":-76.6568,"lon":5.6938,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Quibdó",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-76.6570,"lon":5.6940,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # CAQUETÁ
-    # ══════════════════════════════════════════════════════════════════════════
-    "florencia": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Florencia",
-         "dir":"Cra 10 #14-30, Florencia","barrio":"Centro",
-         "lat":-75.6080,"lon":1.6160,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Florencia. Denuncias y medidas de protección.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital María Inmaculada Florencia",
-         "dir":"Clle 13 #11-50, Florencia","barrio":"Centro",
-         "lat":-75.6085,"lon":1.6165,"color":"#059669",
-         "href":"tel:4344444","phone":"434-4444","horario":"24/7 Urgencias",
-         "desc":"Hospital de alta complejidad. Urgencias y medicina forense.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Florencia",
-         "dir":"Cra 11 #12-40, Florencia","barrio":"Centro",
-         "lat":-75.6075,"lon":1.6155,"color":"#7C3AED",
-         "href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita",
-         "desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Florencia",
-         "dir":"Cra 12 #11-20, Florencia","barrio":"Centro",
-         "lat":-75.6078,"lon":1.6158,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Bus local · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Florencia",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-75.6080,"lon":1.6160,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # GUAVIARE
-    # ══════════════════════════════════════════════════════════════════════════
-    "san josé del guaviare": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía San José del Guaviare",
-         "dir":"Cra 18 #12-20, San José del Guaviare","barrio":"Centro",
-         "lat":-72.6390,"lon":2.5670,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de San José del Guaviare. Denuncias y emergencias.",
-         "transporte":"Taxi local · Transporte fluvial"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental San José del Guaviare",
-         "dir":"Cra 19 #10-50, San José del Guaviare","barrio":"Centro",
-         "lat":-72.6395,"lon":2.5675,"color":"#059669",
-         "href":"tel:5840050","phone":"584-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital departamental. Urgencias y atención a víctimas.",
-         "transporte":"Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia San José del Guaviare",
-         "dir":"Cra 20 #11-30, San José del Guaviare","barrio":"Centro",
-         "lat":-72.6385,"lon":2.5665,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer San José del Guaviare",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-72.6390,"lon":2.5670,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # AMAZONAS
-    # ══════════════════════════════════════════════════════════════════════════
-    "leticia": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Leticia",
-         "dir":"Cra 12 #8-20, Leticia","barrio":"Centro",
-         "lat":-69.9400,"lon":-4.2150,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Leticia. Denuncias y medidas de protección.",
-         "transporte":"Mototaxi · Taxi local"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Rafael de Leticia",
-         "dir":"Calle 9 #13-50, Leticia","barrio":"Centro",
-         "lat":-69.9405,"lon":-4.2145,"color":"#059669",
-         "href":"tel:5927222","phone":"592-7222","horario":"24/7 Urgencias",
-         "desc":"Hospital de Leticia. Urgencias y atención a víctimas.",
-         "transporte":"Mototaxi · Taxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Leticia",
-         "dir":"Cra 13 #7-30, Leticia","barrio":"Centro",
-         "lat":-69.9395,"lon":-4.2155,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Mototaxi · Taxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Leticia",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-69.9400,"lon":-4.2150,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # SAN ANDRÉS
-    # ══════════════════════════════════════════════════════════════════════════
-    "san andrés": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía San Andrés",
-         "dir":"Av. Newball #3-20, San Andrés","barrio":"Centro",
-         "lat":-81.7200,"lon":12.5440,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de San Andrés. Denuncias y medidas de protección.",
-         "transporte":"Taxi · Bus local (rodadero)"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Timothy Britton San Andrés",
-         "dir":"Av. Colombia, San Andrés","barrio":"North End",
-         "lat":-81.7215,"lon":12.5455,"color":"#059669",
-         "href":"tel:5123636","phone":"512-3636","horario":"24/7 Urgencias",
-         "desc":"Hospital insular. Urgencias y atención a víctimas de violencia.",
-         "transporte":"Taxi · Bus local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia San Andrés",
-         "dir":"Cra 6 #10-20, San Andrés","barrio":"Centro",
-         "lat":-81.7205,"lon":12.5445,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Taxi · Bus local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer San Andrés",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-81.7200,"lon":12.5440,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # VICHADA
-    # ══════════════════════════════════════════════════════════════════════════
-    "puerto carreño": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Puerto Carreño",
-         "dir":"Cra 4 #6-20, Puerto Carreño","barrio":"Centro",
-         "lat":-67.4840,"lon":6.1890,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Puerto Carreño. Denuncias y emergencias.",
-         "transporte":"Taxi local · Transporte fluvial"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental de Puerto Carreño",
-         "dir":"Calle 7 #5-50, Puerto Carreño","barrio":"Centro",
-         "lat":-67.4845,"lon":6.1895,"color":"#059669",
-         "href":"tel:5620050","phone":"562-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital departamental. Urgencias y atención a víctimas.",
-         "transporte":"Taxi local"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Puerto Carreño",
-         "dir":"Cra 5 #5-30, Puerto Carreño","barrio":"Centro",
-         "lat":-67.4835,"lon":6.1885,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Taxi local"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Puerto Carreño",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-67.4840,"lon":6.1890,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # GUAINÍA
-    # ══════════════════════════════════════════════════════════════════════════
-    "inírida": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Inírida",
-         "dir":"Cra 10 #5-20, Inírida","barrio":"Centro",
-         "lat":-67.9240,"lon":3.8650,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Inírida. Denuncias y emergencias.",
-         "transporte":"Mototaxi · Transporte fluvial"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital Departamental de Inírida",
-         "dir":"Cra 11 #4-50, Inírida","barrio":"Centro",
-         "lat":-67.9245,"lon":3.8655,"color":"#059669",
-         "href":"tel:5580050","phone":"558-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital departamental. Urgencias y atención a víctimas.",
-         "transporte":"Mototaxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Inírida",
-         "dir":"Cra 12 #3-30, Inírida","barrio":"Centro",
-         "lat":-67.9235,"lon":3.8645,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Mototaxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Inírida",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-67.9240,"lon":3.8650,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-
-    # ══════════════════════════════════════════════════════════════════════════
-    # VAUPÉS
-    # ══════════════════════════════════════════════════════════════════════════
-    "mitú": [
-        {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Mitú",
-         "dir":"Cra 8 #4-20, Mitú","barrio":"Centro",
-         "lat":-70.2330,"lon":1.2530,"color":"#1D4ED8",
-         "href":"tel:123","phone":"123","horario":"24/7",
-         "desc":"Estación de Policía de Mitú. Denuncias y medidas de protección.",
-         "transporte":"Mototaxi · Transporte fluvial"},
-        {"tipo":"Hospital","icon":"🏥","nom":"Hospital San Antonio Mitú",
-         "dir":"Cra 9 #3-50, Mitú","barrio":"Centro",
-         "lat":-70.2335,"lon":1.2535,"color":"#059669",
-         "href":"tel:5640050","phone":"564-0050","horario":"24/7 Urgencias",
-         "desc":"Hospital departamental. Urgencias y atención a víctimas.",
-         "transporte":"Mototaxi"},
-        {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Mitú",
-         "dir":"Cra 10 #2-30, Mitú","barrio":"Centro",
-         "lat":-70.2325,"lon":1.2525,"color":"#0891B2",
-         "href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm",
-         "desc":"Medidas de protección por violencia intrafamiliar.",
-         "transporte":"Mototaxi"},
-        {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Mitú",
-         "dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial",
-         "lat":-70.2330,"lon":1.2530,"color":"#D97706",
-         "href":"tel:155","phone":"155","horario":"24/7",
-         "desc":"Alojamiento seguro coordinado con Línea 155.",
-         "transporte":"Llama al 155"},
-    ],
-}
-
-    # Entidades nacionales siempre disponibles
-    ENTIDADES_NACIONALES = [
-        {"tipo":"Línea Nacional","icon":"📞","nom":"Línea 155 — Mujer","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#EC4899","href":"tel:155","phone":"155","horario":"24/7 Gratuita","desc":"Línea de orientación y apoyo para mujeres víctimas de violencia. Gratuita desde cualquier teléfono en Colombia. Te orientan y activan recursos de protección.","transporte":"Llama al 155 desde cualquier teléfono — sin costo"},
-        {"tipo":"Línea Nacional","icon":"🚨","nom":"Emergencias — 123","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#DC2626","href":"tel:123","phone":"123","horario":"24/7 Gratuita","desc":"Línea de emergencias de la Policía Nacional. Para situaciones de peligro inmediato, acuden al lugar.","transporte":"Llama al 123 inmediatamente en caso de peligro"},
-        {"tipo":"Línea Nacional","icon":"👨‍👩‍👧","nom":"ICBF — Línea 141","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#059669","href":"tel:141","phone":"141","horario":"24/7 Gratuita","desc":"Instituto Colombiano de Bienestar Familiar. Protección familiar, menores en riesgo, orientación a mujeres.","transporte":"Llama al 141 desde cualquier teléfono — sin costo"},
-    ]
-
-    # ── Geolocalización automática vía query params ───────────────────────────
-    # Leer coordenadas GPS inyectadas por el script de geolocalización
-    qp = st.query_params
-    if "geo_lat" in qp and "geo_lon" in qp and "geo_city" in qp:
-        try:
-            _glat = float(qp["geo_lat"])
-            _glon = float(qp["geo_lon"])
-            _gcity = qp["geo_city"]
-            if st.session_state.get("gps_lat") != _glat:
-                st.session_state["gps_lat"]  = _glat
-                st.session_state["gps_lon"]  = _glon
-                st.session_state["detected_city"] = _gcity
-                st.session_state["geo_auto_done"] = True
-        except Exception:
-            pass
-
-    # ── Inyectar JS: solicita geolocación automáticamente al cargar ──────────
-    st.components.v1.html("""
-    <script>
-    (function() {
-        if (window._geoInjected) return;
-        window._geoInjected = true;
-
-        function normalize(s) {
-            return s.toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-                .trim();
-        }
-
-        function pushToStreamlit(lat, lon, city) {
-            // Escribir en la URL para que Streamlit los lea como query_params
-            const url = new URL(window.parent.location.href);
-            url.searchParams.set('geo_lat', lat.toFixed(6));
-            url.searchParams.set('geo_lon', lon.toFixed(6));
-            url.searchParams.set('geo_city', normalize(city));
-            window.parent.history.replaceState({}, '', url.toString());
-            // Forzar re-run de Streamlit tocando un parámetro especial
-            window.parent.location.search = url.search;
-        }
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
-                        .then(r => r.json())
-                        .then(data => {
-                            const city = data.address.city || data.address.town ||
-                                         data.address.municipality || data.address.county || 'colombia';
-                            pushToStreamlit(lat, lon, city);
-                        })
-                        .catch(() => pushToStreamlit(lat, lon, 'colombia'));
-                },
-                function(err) { console.log('Geo error:', err.code, err.message); },
-                {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
-            );
-        }
-    })();
-    </script>
-    """, height=0)
-
-    # ── Cabecera con botón de ubicación ──────────────────────────────────────
-    st.markdown("""
-    <div style="margin-bottom:24px;">
-        <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;
-            border:1px solid #BFDBFE;border-radius:24px;padding:5px 16px;font-size:11px;
-            color:#1D4ED8;font-weight:700;margin-bottom:12px;">🚔 AYUDA CERCANA</div>
-        <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 8px;letter-spacing:-0.5px;">Ayuda Cercana</h1>
-        <p style="color:#6B7280;font-size:14px;margin:0;">
-            Detecta tu ubicación automáticamente y encuentra la ayuda más cercana — policía, hospitales, fiscalía, refugios.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Alerta de emergencia siempre visible arriba
-    st.markdown("""
-    <div style="background:linear-gradient(135deg,#FEF2F2,#FEE2E2);border:2px solid #FCA5A5;border-radius:18px;
-        padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
-        <div style="font-size:28px;">🚨</div>
-        <div style="flex:1;">
-            <div style="font-weight:900;color:#991B1B;font-size:14px;margin-bottom:4px;">¿Estás en peligro ahora mismo?</div>
-            <div style="font-size:12px;color:#7F1D1D;line-height:1.6;">Llama <strong>123</strong> (Policía) o <strong>155</strong> (Línea Mujer) — ambas son gratuitas, 24 horas, desde cualquier celular.</div>
-        </div>
-        <div style="display:flex;gap:8px;">
-            <a href="tel:123" style="text-decoration:none;">
-                <div style="background:#DC2626;color:#fff;border-radius:12px;padding:10px 18px;font-size:15px;font-weight:900;text-align:center;
-                    box-shadow:0 4px 14px rgba(220,38,38,0.4);">📞 123</div>
-            </a>
-            <a href="tel:155" style="text-decoration:none;">
-                <div style="background:#7C3AED;color:#fff;border-radius:12px;padding:10px 18px;font-size:15px;font-weight:900;text-align:center;
-                    box-shadow:0 4px 14px rgba(124,58,237,0.4);">💜 155</div>
-            </a>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Helper: normalizar texto (quita tildes, mayúsculas, espacios extra) ────
-    def _norm(s):
-        import unicodedata
-        s = s.lower().strip()
-        s = unicodedata.normalize('NFD', s)
-        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
-        return s
-
-    # ── Helper: distancia haversine en km ────────────────────────────────────
-    def _haversine(lat1, lon1, lat2, lon2):
-        R = 6371.0
-        dlat = math.radians(lat2 - lat1)
-        dlon = math.radians(lon2 - lon1)
-        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
-        return R * 2 * math.asin(math.sqrt(a))
-
-    # ── Estado: coordenadas GPS reales (si se detectaron) ────────────────────
-    gps_lat = st.session_state.get("gps_lat")
-    gps_lon = st.session_state.get("gps_lon")
-    geo_auto_done = st.session_state.get("geo_auto_done", False)
-
-    # ── Selector de ciudad ────────────────────────────────────────────────────
-    if geo_auto_done:
-        _location_label = f"📡 Ubicación detectada automáticamente: **{st.session_state.get('detected_city','').title()}**"
-        st.success(_location_label + "  — *Buscando entidades a 20 km a la redonda…*")
-
-    city_col, clear_col = st.columns([3, 1])
-    with city_col:
-        city_input = st.text_input(
-            "📍 O escribe tu ciudad (sin importar mayúsculas ni tildes):",
-            value=st.session_state.get("detected_city", ""),
-            key="ayuda_city",
-            placeholder="Ej: bogota, medellín, CALI, barranquilla..."
-        )
-    with clear_col:
-        st.markdown("<div style='padding-top:28px;'></div>", unsafe_allow_html=True)
-        if st.button("🔄 Borrar", use_container_width=True, key="clear_city"):
-            st.session_state.pop("detected_city", None)
-            st.session_state.pop("gps_lat", None)
-            st.session_state.pop("gps_lon", None)
-            st.session_state.pop("geo_auto_done", None)
-            # Limpiar query params
-            st.query_params.clear()
-            st.rerun()
-
-    # ── Normalizar lo que escribió el usuario ─────────────────────────────────
-    city_key = _norm(city_input)
-
-    # ── Buscar coincidencia en el diccionario (fuzzy, sin tildes, sin case) ───
-    city_match = None
-    # 1) Coincidencia exacta o contenida
-    for k in ENTIDADES_COL.keys():
-        kn = _norm(k)
-        if kn == city_key or kn in city_key or city_key in kn:
-            city_match = k
-            break
-    # 2) Coincidencia por palabras individuales
-    if not city_match:
-        for k in ENTIDADES_COL.keys():
-            kn = _norm(k)
-            if any(word in city_key for word in kn.split() if len(word) > 3):
-                city_match = k
-                break
-    # 3) Coincidencia parcial por primeros caracteres (≥4 letras)
-    if not city_match and len(city_key) >= 4:
-        for k in ENTIDADES_COL.keys():
-            kn = _norm(k)
-            if kn.startswith(city_key[:4]) or city_key.startswith(kn[:4]):
-                city_match = k
-                break
-
-    # ── Seleccionar y ordenar entidades ───────────────────────────────────────
-    # Si tenemos GPS exacto, buscar en TODAS las ciudades a ≤ 20 km
-    RADIO_KM = 20.0
-    entidades_ciudad = []
-    usando_gps = False
-
-    if gps_lat is not None and gps_lon is not None:
-        # Recopilar todas las entidades de todas las ciudades y filtrar por distancia
-        _todas = [e for lista in ENTIDADES_COL.values() for e in lista]
-        entidades_cercanas = []
-        for e in _todas:
-            if e.get("lat") and e.get("lon") and e["lat"] != 0:
-                dist = _haversine(gps_lat, gps_lon, e["lon"], e["lat"])  # nota: lat/lon en BD pueden estar invertidos
-                # Intentar también con lat/lon en orden correcto
-                dist2 = _haversine(gps_lat, gps_lon, e["lat"], e["lon"])
-                d = min(dist, dist2)
-                if d <= RADIO_KM:
-                    entidades_cercanas.append((d, e))
-        entidades_cercanas.sort(key=lambda x: x[0])
-        entidades_ciudad = [e for _, e in entidades_cercanas]
-        usando_gps = True
-        if not entidades_ciudad:
-            # Fallback a ciudad detectada si no hay nada a 20km
-            entidades_ciudad = ENTIDADES_COL.get(city_match, [])
-            usando_gps = False
-    else:
-        entidades_ciudad = ENTIDADES_COL.get(city_match, [])
-
-    entidades = entidades_ciudad + ENTIDADES_NACIONALES
-
-    if not entidades_ciudad:
-        st.warning(
-            f"📍 No tenemos entidades específicas para **{city_input.title()}** aún. "
-            "Mostrando líneas nacionales disponibles para toda Colombia. "
-            "Llama al **155** para que te orienten a la entidad más cercana.",
-            icon="ℹ️"
-        )
-    else:
-        _label = city_input.title() if city_input.strip() else "tu ubicación"
-        _extra = f" · radio {RADIO_KM:.0f} km 📡" if usando_gps else ""
-        st.markdown(
-            f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
-            f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
-            f'<strong style="color:#1E1B4B;">{_label}</strong>{_extra} + líneas nacionales</div>',
-            unsafe_allow_html=True
-        )
-
-    # ── Filtro por tipo ───────────────────────────────────────────────────────
-    filter_tipo = st.selectbox(
-        "🔍 Filtrar por tipo:",
-        ["Todos","Policía","Hospital","Fiscalía","Comisaría","Refugio","Psicología","Línea Nacional"],
-        key="ayuda_filter"
-    )
-    filtered = [e for e in entidades if filter_tipo == "Todos" or e["tipo"] == filter_tipo]
-
-    # ── Grid de tarjetas ──────────────────────────────────────────────────────
-    col_grid, col_det = st.columns([3, 2])
-
-    with col_grid:
-        gcols = st.columns(2)
-        for i, e in enumerate(filtered):
-            with gcols[i % 2]:
-                is_sel = st.session_state.get("selected_entity") == e["nom"]
-                border = f"2.5px solid {e['color']}" if is_sel else "1.5px solid #EDE9FE"
-                shadow = f"0 8px 28px {e['color']}30" if is_sel else "0 2px 12px rgba(109,40,217,0.07)"
-                bg = f"linear-gradient(135deg,{e['color']}08,#fff)" if is_sel else "#fff"
-                st.markdown(f"""
-                <div style="background:{bg};border:{border};border-radius:20px;
-                    padding:18px;margin-bottom:12px;box-shadow:{shadow};cursor:pointer;transition:all 0.2s;">
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-                        <div style="background:linear-gradient(135deg,{e['color']}22,{e['color']}10);border-radius:14px;
-                            width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">{e['icon']}</div>
-                        <div style="background:{e['color']}18;color:{e['color']};font-size:9px;font-weight:800;
-                            padding:4px 10px;border-radius:20px;text-transform:uppercase;align-self:flex-start;">{e['tipo']}</div>
-                    </div>
-                    <div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:4px;line-height:1.3;">{e['nom']}</div>
-                    <div style="font-size:10px;color:#A78BFA;margin-bottom:4px;font-weight:600;">📍 {e['barrio']}</div>
-                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
-                    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
-                        <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
-                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] != 'Presencial' else ''}
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                        <a href="{e['href']}" style="text-decoration:none;flex:1;">
-                            <div style="background:linear-gradient(135deg,{e['color']},{e['color']}CC);color:#fff;border-radius:10px;
-                                padding:8px;text-align:center;font-size:11px;font-weight:800;">
-                                {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
-                            </div>
-                        </a>
-                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+')}" target="_blank" style="text-decoration:none;flex:1;">
-                            <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
-                                padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
-                        </a>
-                    </div>
-                </div>""", unsafe_allow_html=True)
-                btn_label = "✓ Ver menos" if is_sel else "ℹ️ Ver detalles"
-                if st.button(btn_label, key=f"ent_{i}_{e['nom'][:12]}", use_container_width=True,
-                             type="primary" if is_sel else "secondary"):
-                    if is_sel:
-                        st.session_state.pop("selected_entity", None)
-                    else:
-                        st.session_state["selected_entity"] = e["nom"]
-                    st.rerun()
-
-    # ── Panel de detalle ──────────────────────────────────────────────────────
-    with col_det:
-        sel_nom = st.session_state.get("selected_entity")
-        sel_e = next((e for e in entidades if e["nom"] == sel_nom), None)
-
-        if sel_e:
-            st.markdown(f"""<div class="sh-card" style="position:sticky;top:16px;border-top:4px solid {sel_e['color']};">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-                    <div style="background:linear-gradient(135deg,{sel_e['color']}22,{sel_e['color']}0E);border-radius:16px;
-                        width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">{sel_e['icon']}</div>
-                    <div style="background:{sel_e['color']}18;color:{sel_e['color']};font-size:9px;font-weight:800;
-                        padding:5px 12px;border-radius:20px;text-transform:uppercase;">{sel_e['tipo']}</div>
-                </div>
-                <div style="font-size:17px;font-weight:900;color:#1E1B4B;margin-bottom:8px;line-height:1.3;">{sel_e['nom']}</div>
-                <p style="font-size:12px;color:#374151;line-height:1.75;margin-bottom:16px;">{sel_e['desc']}</p>
-            </div>""", unsafe_allow_html=True)
-
-            # Ficha de datos
-            datos = [
-                ("📍 Dirección", sel_e['dir']),
-                ("🏘️ Zona", sel_e['barrio']),
-                ("🕐 Horario", sel_e['horario']),
-                ("📞 Contacto", sel_e['phone']),
-            ]
-            for label, val in datos:
-                st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
-                    background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:12px;margin-bottom:6px;">
-                    <span style="font-size:11px;color:#7C3AED;font-weight:700;flex-shrink:0;">{label}</span>
-                    <span style="font-size:11px;font-weight:800;color:#1E1B4B;text-align:right;margin-left:8px;line-height:1.4;">{val}</span>
-                </div>""", unsafe_allow_html=True)
-
-            # Cómo llegar
-            if sel_e.get('transporte'):
-                st.markdown(f"""<div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border-radius:14px;
-                    padding:12px 14px;margin:10px 0;border:1px solid #BFDBFE;">
-                    <div style="font-size:11px;font-weight:800;color:#1D4ED8;margin-bottom:5px;">🚌 Cómo llegar</div>
-                    <div style="font-size:11px;color:#1E40AF;line-height:1.7;">{sel_e['transporte']}</div>
-                </div>""", unsafe_allow_html=True)
-
-            # Botones de acción principales
-            st.markdown("<div style='margin-top:12px;display:flex;flex-direction:column;gap:8px;'>", unsafe_allow_html=True)
-
-            call_label = f"📞 Llamar ahora: {sel_e['phone']}" if sel_e['href'].startswith('tel:') else "🌐 Visitar sitio web"
-            st.markdown(f"""<a href="{sel_e['href']}" {'target="_blank"' if sel_e['href'].startswith('http') else ''} style="text-decoration:none;display:block;">
-                <div style="width:100%;background:linear-gradient(135deg,{sel_e['color']},{sel_e['color']}BB);color:#fff;border-radius:14px;
-                    padding:14px;text-align:center;font-size:13px;font-weight:900;
-                    box-shadow:0 4px 16px {sel_e['color']}44;letter-spacing:0.3px;">{call_label}</div>
-            </a>""", unsafe_allow_html=True)
-
-            if sel_e['lat'] != 0:
-                maps_url_dir = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=transit"
-                maps_url_walk = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=walking"
-                st.markdown(f"""
-                <a href="{maps_url_dir}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
-                    <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
-                        padding:12px;text-align:center;font-size:12px;font-weight:800;">
-                        🚌 Cómo llegar — Transporte público
-                    </div>
-                </a>
-                <a href="{maps_url_walk}" target="_blank" style="text-decoration:none;display:block;margin-top:6px;">
-                    <div style="width:100%;background:#F0FDF4;color:#059669;border:2px solid #BBF7D0;border-radius:14px;
-                        padding:12px;text-align:center;font-size:12px;font-weight:800;">
-                        🚶 Cómo llegar — A pie
-                    </div>
-                </a>
-                """, unsafe_allow_html=True)
-            else:
-                maps_url_search = f"https://www.google.com/maps/search/?api=1&query={sel_e['nom'].replace(' ', '+')}"
-                st.markdown(f"""<a href="{maps_url_search}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
-                    <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
-                        padding:12px;text-align:center;font-size:12px;font-weight:800;">🗺️ Ver en Google Maps</div>
-                </a>""", unsafe_allow_html=True)
-
-            st.markdown("</div>", unsafe_allow_html=True)
-
-            # Instrucciones con IA
-            if st.button("🤖 Instrucciones detalladas con IA", key="directions_btn", use_container_width=True):
-                with st.spinner("Generando ruta personalizada..."):
-                    prompt_ciudad = city_input if city_input else "Colombia"
-                    dir_text = call_claude(
-                        "Eres experta en transporte urbano colombiano. Da instrucciones claras con bullets y emojis. Incluye: TransMilenio/Metro/BRT según ciudad, taxi/Uber, a pie. Máx 120 palabras. Indica tiempo estimado y costo aproximado.",
-                        f"¿Cómo llegar desde el centro de {prompt_ciudad} hasta {sel_e['nom']} ubicada en {sel_e['dir']}, barrio {sel_e.get('barrio','')}?"
-                    )
-                    st.session_state[f"dir_{sel_e['nom']}"] = dir_text
-
-            dir_r = st.session_state.get(f"dir_{sel_e['nom']}", "")
-            if dir_r:
-                st.markdown(f"""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:14px;
-                    padding:14px 16px;border:1px solid #C4B5FD;margin-top:10px;">
-                    <div style="font-size:11px;font-weight:800;color:#5B21B6;margin-bottom:8px;">🧭 Ruta sugerida por SARA</div>
-                    <div style="font-size:11px;color:#1E1B4B;line-height:1.85;white-space:pre-wrap;">{dir_r}</div>
-                </div>""", unsafe_allow_html=True)
-
-        else:
-            st.markdown("""
-            <div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:20px;
-                border:2px dashed #C4B5FD;padding:40px 24px;text-align:center;position:sticky;top:16px;">
-                <div style="font-size:48px;margin-bottom:14px;">📍</div>
-                <div style="font-size:15px;font-weight:800;color:#5B21B6;margin-bottom:8px;">Selecciona una entidad</div>
-                <div style="font-size:12px;color:#A78BFA;line-height:1.8;">
-                    Haz clic en <strong>"Ver detalles"</strong> para ver la ficha completa:<br>
-                    dirección, horario, cómo llegar y botón para llamar directamente.
-                </div>
-            </div>""", unsafe_allow_html=True)
-
-    # ── Líneas de emergencia siempre visibles abajo ───────────────────────────
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown('<div style="font-weight:800;color:#1E1B4B;font-size:14px;margin-bottom:14px;">📞 Líneas de emergencia — Todas gratuitas 24/7</div>', unsafe_allow_html=True)
-    em_cols = st.columns(3)
-    lineas = [
-        ("🚨","123","Policía Nacional","Emergencias inmediatas","#DC2626","tel:123"),
-        ("💜","155","Línea Mujer","Apoyo y orientación","#7C3AED","tel:155"),
-        ("👨‍👩‍👧","141","ICBF","Protección familiar","#059669","tel:141"),
-    ]
-    for col, (icon, num, nombre, desc, color, href) in zip(em_cols, lineas):
-        with col:
-            st.markdown(f"""<a href="{href}" style="text-decoration:none;display:block;">
-                <div style="background:linear-gradient(135deg,{color},{color}CC);color:#fff;border-radius:18px;
-                    padding:18px;text-align:center;box-shadow:0 4px 18px {color}44;margin-bottom:8px;">
-                    <div style="font-size:26px;margin-bottom:6px;">{icon}</div>
-                    <div style="font-size:28px;font-weight:900;letter-spacing:1px;">{num}</div>
-                    <div style="font-size:11px;font-weight:800;margin-top:4px;opacity:0.9;">{nombre}</div>
-                    <div style="font-size:10px;opacity:0.8;margin-top:2px;">{desc}</div>
-                </div>
-            </a>""", unsafe_allow_html=True)
-
+#pagina ayuda
 # ── ACERCA DE ─────────────────────────────────────────────────────────────────
 elif "i️" in page:
     st.markdown("""
