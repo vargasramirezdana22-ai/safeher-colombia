@@ -2320,7 +2320,10 @@ elif "🚔" in page:
         for city_ents in ENTIDADES_COL.values():
             for e in city_ents:
                 if e.get("lat") and e.get("lon") and e["lat"] != 0:
-                    dist = haversine(saved_lat, saved_lon, e["lon"], e["lat"])
+                    # En los datos originales: campo "lon" = latitud real, campo "lat" = longitud real
+                    real_lat = e["lon"]
+                    real_lon = e["lat"]
+                    dist = haversine(saved_lat, saved_lon, real_lat, real_lon)
                     if dist <= 20:
                         e_copy = dict(e)
                         e_copy["_dist_km"] = round(dist, 1)
@@ -2395,7 +2398,7 @@ elif "🚔" in page:
                                 {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
                             </div>
                         </a>
-                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+')}" target="_blank" style="text-decoration:none;flex:1;">
+                        <a href="{'https://www.google.com/maps?q=' + str(e['lon']) + ',' + str(e['lat']) if e.get('lat',0)!=0 else 'https://www.google.com/maps/search/?api=1&query=' + urllib.parse.quote(e['nom'] + ' ' + e['dir'])}" target="_blank" style="text-decoration:none;flex:1;">
                             <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
                         </a>
@@ -2459,11 +2462,21 @@ elif "🚔" in page:
                     box-shadow:0 4px 16px {sel_e['color']}44;letter-spacing:0.3px;">{call_label}</div>
             </a>""", unsafe_allow_html=True)
 
-            if sel_e['lat'] != 0:
-                maps_url_dir = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=transit"
-                maps_url_walk = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=walking"
+            if sel_e.get('lat', 0) != 0:
+                # lon = latitud real, lat = longitud real (datos originales invertidos)
+                real_lat = sel_e['lon']
+                real_lon = sel_e['lat']
+                maps_url_pin   = f"https://www.google.com/maps?q={real_lat},{real_lon}"
+                maps_url_dir   = f"https://www.google.com/maps/dir/?api=1&destination={real_lat},{real_lon}&travelmode=transit"
+                maps_url_walk  = f"https://www.google.com/maps/dir/?api=1&destination={real_lat},{real_lon}&travelmode=walking"
                 st.markdown(f"""
-                <a href="{maps_url_dir}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
+                <a href="{maps_url_pin}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
+                    <div style="width:100%;background:#EFF6FF;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
+                        padding:12px;text-align:center;font-size:12px;font-weight:800;">
+                        📍 Ver ubicación exacta en Maps
+                    </div>
+                </a>
+                <a href="{maps_url_dir}" target="_blank" style="text-decoration:none;display:block;margin-top:6px;">
                     <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
                         padding:12px;text-align:center;font-size:12px;font-weight:800;">
                         🚌 Cómo llegar — Transporte público
@@ -2477,7 +2490,7 @@ elif "🚔" in page:
                 </a>
                 """, unsafe_allow_html=True)
             else:
-                maps_url_search = f"https://www.google.com/maps/search/?api=1&query={sel_e['nom'].replace(' ', '+')}"
+                maps_url_search = f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(sel_e['nom'] + ' ' + sel_e['dir'])}"
                 st.markdown(f"""<a href="{maps_url_search}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
                     <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
                         padding:12px;text-align:center;font-size:12px;font-weight:800;">🗺️ Ver en Google Maps</div>
