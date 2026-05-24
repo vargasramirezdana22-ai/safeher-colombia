@@ -2305,39 +2305,142 @@ elif "🚔" in page:
     entidades_ciudad = ENTIDADES_COL.get(city_match, [])
     entidades = entidades_ciudad + ENTIDADES_NACIONALES
 
+    # ── Helpers de distancia ──────────────────────────────────────────────────
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+
+    def buscar_overpass(lat, lon, radio_m=5000):
+        """
+        Consulta Overpass API para encontrar hospitales, policía, comisarías,
+        centros de salud y refugios reales cerca de las coordenadas dadas.
+        Devuelve lista de entidades en el mismo formato que ENTIDADES_COL.
+        """
+        import requests
+        # Tipos de lugares relevantes para seguridad de la mujer
+        query = f"""
+        [out:json][timeout:25];
+        (
+          node["amenity"="hospital"](around:{radio_m},{lat},{lon});
+          way["amenity"="hospital"](around:{radio_m},{lat},{lon});
+          node["amenity"="clinic"](around:{radio_m},{lat},{lon});
+          node["amenity"="health_post"](around:{radio_m},{lat},{lon});
+          node["amenity"="police"](around:{radio_m},{lat},{lon});
+          way["amenity"="police"](around:{radio_m},{lat},{lon});
+          node["amenity"="social_facility"](around:{radio_m},{lat},{lon});
+          node["office"="government"](around:{radio_m},{lat},{lon});
+          node["amenity"="fire_station"](around:{radio_m},{lat},{lon});
+          node["amenity"="pharmacy"](around:{radio_m},{lat},{lon});
+        );
+        out center tags;
+        """
+        try:
+            resp = requests.post(
+                "https://overpass-api.de/api/interpreter",
+                data={"data": query},
+                timeout=20
+            )
+            if resp.status_code != 200:
+                return []
+            data = resp.json()
+        except Exception:
+            return []
+
+        # Mapeo de amenity → tipo/icono/color de la app
+        TIPO_MAP = {
+            "hospital":        ("Hospital",   "🏥", "#059669"),
+            "clinic":          ("Hospital",   "🏥", "#059669"),
+            "health_post":     ("Hospital",   "🏥", "#059669"),
+            "police":          ("Policía",    "🚔", "#1D4ED8"),
+            "social_facility": ("Psicología", "🧠", "#8B5CF6"),
+            "fire_station":    ("Bomberos",   "🚒", "#D97706"),
+            "pharmacy":        ("Farmacia",   "💊", "#0891B2"),
+            "government":      ("Entidad",    "🏛️", "#7C3AED"),
+        }
+
+        results = []
+        seen = set()
+        for el in data.get("elements", []):
+            tags = el.get("tags", {})
+            nombre = (tags.get("name") or tags.get("name:es") or "").strip()
+            if not nombre or nombre in seen:
+                continue
+            seen.add(nombre)
+
+            # Coordenadas — los ways tienen "center"
+            if el["type"] == "node":
+                e_lat, e_lon = el.get("lat"), el.get("lon")
+            else:
+                center = el.get("center", {})
+                e_lat, e_lon = center.get("lat"), center.get("lon")
+            if not e_lat or not e_lon:
+                continue
+
+            amenity = tags.get("amenity") or tags.get("office", "")
+            tipo, icon, color = TIPO_MAP.get(amenity, ("Entidad", "🏛️", "#6B7280"))
+
+            dist_km = haversine(lat, lon, e_lat, e_lon)
+            direccion = tags.get("addr:street", "")
+            if tags.get("addr:housenumber"):
+                direccion += " #" + tags["addr:housenumber"]
+            if not direccion:
+                direccion = f"{e_lat:.5f}, {e_lon:.5f}"
+
+            barrio = tags.get("addr:suburb") or tags.get("addr:neighbourhood") or tags.get("addr:city") or ""
+            telefono = tags.get("phone") or tags.get("contact:phone") or tags.get("contact:mobile") or "Ver Maps"
+            telefono = telefono.replace(" ", "").replace("-", "") if telefono != "Ver Maps" else telefono
+            href = f"tel:{telefono}" if telefono not in ("Ver Maps", "") else f"https://www.google.com/maps?q={e_lat},{e_lon}"
+            horario = tags.get("opening_hours") or "Consultar"
+            web = tags.get("website") or tags.get("contact:website") or ""
+
+            results.append({
+                "tipo":       tipo,
+                "icon":       icon,
+                "nom":        nombre,
+                "dir":        direccion,
+                "barrio":     barrio,
+                "lat":        e_lat,   # aquí sí están correctos (Overpass devuelve lat/lon bien)
+                "lon":        e_lon,
+                "_real_lat":  e_lat,
+                "_real_lon":  e_lon,
+                "_dist_km":   round(dist_km, 1),
+                "color":      color,
+                "href":       href,
+                "phone":      telefono if telefono != "Ver Maps" else "Ver Maps",
+                "horario":    horario,
+                "desc":       f"{tipo} encontrado en OpenStreetMap. Distancia aproximada: {dist_km:.1f} km.",
+                "transporte": f"A {dist_km:.1f} km de tu ubicación actual.",
+                "_overpass":  True,
+                "_web":       web,
+            })
+
+        results.sort(key=lambda x: x["_dist_km"])
+        return results
+
     # ── Mostrar estado de ubicación ───────────────────────────────────────────
     if use_gps:
-        st.success(f"📡 Ubicación GPS activa — mostrando entidades en un radio de 20 km de tu posición real.", icon="✅")
-        # Filtrar entidades de la base local por distancia de 20 km
-        def haversine(lat1, lon1, lat2, lon2):
-            R = 6371
-            dlat = math.radians(lat2 - lat1)
-            dlon = math.radians(lon2 - lon1)
-            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
-            return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+        st.success(f"📡 Ubicación GPS activa — buscando lugares reales cercanos en OpenStreetMap.", icon="✅")
 
-        entidades_cercanas = []
-        for city_ents in ENTIDADES_COL.values():
-            for e in city_ents:
-                if e.get("lat") and e.get("lon") and e["lat"] != 0:
-                    # En los datos originales: campo "lon" = latitud real, campo "lat" = longitud real
-                    real_lat = e["lon"]
-                    real_lon = e["lat"]
-                    dist = haversine(saved_lat, saved_lon, real_lat, real_lon)
-                    if dist <= 20:
-                        e_copy = dict(e)
-                        e_copy["_dist_km"] = round(dist, 1)
-                        entidades_cercanas.append(e_copy)
-        entidades_cercanas.sort(key=lambda x: x.get("_dist_km", 999))
+        cache_key = f"overpass_{saved_lat:.4f}_{saved_lon:.4f}"
+        if cache_key not in st.session_state:
+            with st.spinner("🔍 Buscando hospitales, policía y entidades cercanas en tiempo real..."):
+                st.session_state[cache_key] = buscar_overpass(saved_lat, saved_lon, radio_m=5000)
+
+        entidades_cercanas = st.session_state[cache_key]
         entidades = entidades_cercanas + ENTIDADES_NACIONALES
+
         if entidades_cercanas:
             st.markdown(
                 f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
-                f'📍 <strong style="color:#1E1B4B;">{len(entidades_cercanas)}</strong> entidades encontradas en un radio de 20 km</div>',
+                f'📍 <strong style="color:#1E1B4B;">{len(entidades_cercanas)}</strong> lugares reales encontrados '
+                f'en un radio de 5 km · Fuente: OpenStreetMap</div>',
                 unsafe_allow_html=True
             )
         else:
-            st.info("📍 No encontramos entidades registradas a menos de 20 km. Mostrando líneas nacionales.", icon="ℹ️")
+            st.warning("📍 No encontramos lugares en OpenStreetMap cerca de tu posición. Intenta ampliar la búsqueda o escribe tu ciudad.", icon="ℹ️")
     elif city_input.strip():
         if not entidades_ciudad:
             st.warning(
@@ -2389,7 +2492,8 @@ elif "🚔" in page:
                     <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
                     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
                         <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
-                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] != 'Presencial' else ''}
+                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] not in ('Presencial','Ver Maps') else ''}
+                        {'<div style="background:#EFF6FF;color:#1D4ED8;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📏 ' + str(e.get("_dist_km","")) + ' km</div>' if e.get("_dist_km") else ''}
                     </div>
                     <div style="display:flex;gap:6px;">
                         <a href="{e['href']}" style="text-decoration:none;flex:1;">
@@ -2398,7 +2502,7 @@ elif "🚔" in page:
                                 {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
                             </div>
                         </a>
-                        <a href="{'https://www.google.com/maps?q=' + str(e['lon']) + ',' + str(e['lat']) if e.get('lat',0)!=0 else 'https://www.google.com/maps/search/?api=1&query=' + urllib.parse.quote(e['nom'] + ' ' + e['dir'])}" target="_blank" style="text-decoration:none;flex:1;">
+                        <a href="{'https://www.google.com/maps?q=' + str(e['_real_lat'] if e.get('_overpass') else e['lon']) + ',' + str(e['_real_lon'] if e.get('_overpass') else e['lat']) if e.get('lat',0)!=0 else 'https://www.google.com/maps/search/?api=1&query=' + urllib.parse.quote(e['nom'] + ' ' + e['dir'])}" target="_blank" style="text-decoration:none;flex:1;">
                             <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
                         </a>
@@ -2463,9 +2567,14 @@ elif "🚔" in page:
             </a>""", unsafe_allow_html=True)
 
             if sel_e.get('lat', 0) != 0:
-                # lon = latitud real, lat = longitud real (datos originales invertidos)
-                real_lat = sel_e['lon']
-                real_lon = sel_e['lat']
+                # Overpass entries tienen _real_lat/_real_lon correctos
+                # Entidades hardcodeadas tienen lat/lon invertidos
+                if sel_e.get("_overpass"):
+                    real_lat = sel_e["_real_lat"]
+                    real_lon = sel_e["_real_lon"]
+                else:
+                    real_lat = sel_e['lon']
+                    real_lon = sel_e['lat']
                 maps_url_pin   = f"https://www.google.com/maps?q={real_lat},{real_lon}"
                 maps_url_dir   = f"https://www.google.com/maps/dir/?api=1&destination={real_lat},{real_lon}&travelmode=transit"
                 maps_url_walk  = f"https://www.google.com/maps/dir/?api=1&destination={real_lat},{real_lon}&travelmode=walking"
