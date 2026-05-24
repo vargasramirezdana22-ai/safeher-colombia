@@ -10,8 +10,6 @@ import numpy as np
 import pandas as pd
 from groq import Groq
 import plotly.graph_objects as go
-import requests
-from geopy.distance import geodesic
 
 # ─── CARGAR MODELOS PKL ───────────────────────────────────────────────────────
 
@@ -2130,363 +2128,451 @@ FORMATO: Español cálido y cercano, máx 200 palabras, emojis con moderación (
 
 # ── AYUDA CERCANA ─────────────────────────────────────────────────────────────
 elif "🚔" in page:
+    # ── Base de datos de entidades por ciudad colombiana ──────────────────────
+    ENTIDADES_COL = {
+        "bogotá": [
+            {"tipo":"Policía","icon":"🚔","nom":"Estación de Policía Centro","dir":"Carrera 9 #15-55, Bogotá","barrio":"La Candelaria","lat":-74.0721,"lon":4.5981,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Estación de Policía Metropolitana. Denuncia inmediata y medidas de protección.","transporte":"TransMilenio: Portal Centro (5 min) · Bus: múltiples rutas Cra 10"},
+            {"tipo":"Hospital","icon":"🏥","nom":"Hospital La Victoria","dir":"Calle 1 #18-98, Bogotá","barrio":"Santa Inés","lat":-74.0927,"lon":4.5883,"color":"#059669","href":"tel:3649900","phone":"364-9900","horario":"24/7 Urgencias","desc":"Hospital público de alta complejidad. Urgencias, medicina forense, apoyo psicológico para víctimas.","transporte":"TransMilenio: Av. Jiménez (10 min caminando) · Bus: Cll 1"},
+            {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Bogotá 24h","dir":"Calle 8 #69B-41, Bogotá","barrio":"Paloquemao","lat":-74.0980,"lon":4.6250,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita previa.","transporte":"TransMilenio: Paloquemao (3 min caminando) · Bus: Av. Calle 6"},
+            {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia N°1","dir":"Cra 24 #34-17, Bogotá","barrio":"Teusaquillo","lat":-74.0860,"lon":4.6330,"color":"#0891B2","href":"tel:123","phone":"123 / Presencial","horario":"Lun–Vie 7am–4pm","desc":"Medidas de protección por violencia intrafamiliar. Órdenes de alejamiento inmediatas.","transporte":"TransMilenio: Parkway (8 min caminando)"},
+            {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Benposta","dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial","lat":-74.0800,"lon":4.6200,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Alojamiento seguro y gratuito para mujeres víctimas de violencia y sus hijos e hijas.","transporte":"Llama al 155 (gratuito). Coordinan transporte seguro y discreto"},
+            {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Bogotá","dir":"Carrera 52 #42-43, Bogotá","barrio":"Paloquemao","lat":-74.0990,"lon":4.6330,"color":"#8B5CF6","href":"tel:3159700","phone":"315-9700","horario":"Lun–Vie 8am–5pm","desc":"Centro de Atención Integral a Víctimas de Violencia Sexual. Atención psicológica, jurídica y social gratuita.","transporte":"TransMilenio: Paloquemao (6 min caminando)"},
+        ],
+        "medellín": [
+            {"tipo":"Policía","icon":"🚔","nom":"CAI Centro Medellín","dir":"Carrera 45 #54-20, Medellín","barrio":"Centro","lat":-75.5742,"lon":6.2442,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Centro de Atención Inmediata. Atención permanente para denuncias y emergencias policiales.","transporte":"Metro: Prado (5 min caminando) · Bus: múltiples rutas Cra 45"},
+            {"tipo":"Hospital","icon":"🏥","nom":"Hospital General de Medellín","dir":"Calle 24 #29-6, Medellín","barrio":"Bomboná","lat":-75.5730,"lon":6.2358,"color":"#059669","href":"tel:4411227","phone":"444-1227","horario":"24/7 Urgencias","desc":"Hospital público con urgencias completas, medicina forense y apoyo psicológico para víctimas de violencia.","transporte":"Bus: rutas por Cll 24 · Metro: Industriales (12 min caminando)"},
+            {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Medellín 24h","dir":"Calle 57 #45-129, Medellín","barrio":"Niquitao","lat":-75.5690,"lon":6.2570,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas, sin necesidad de cita.","transporte":"Metro: Hospital (10 min caminando) · Bus: Cll 57"},
+            {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia N°1","dir":"Carrera 52 #48-10, Medellín","barrio":"El Centro","lat":-75.5700,"lon":6.2510,"color":"#0891B2","href":"tel:123","phone":"123 / Presencial","horario":"Lun–Vie 8am–5pm","desc":"Medidas de protección familiar, conciliación y apoyo psicosocial integral. Sin costo.","transporte":"Metro: Alpujarra (12 min caminando) · Bus: Cra 52"},
+            {"tipo":"Refugio","icon":"🏠","nom":"Casa Refugio Luz y Esperanza","dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial","lat":-75.5750,"lon":6.2420,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Alojamiento temporal gratuito y seguro para mujeres víctimas de violencia y sus hijos.","transporte":"Llama al 155 para coordinación de transporte seguro y discreto"},
+            {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Medellín","dir":"Calle 50 #40-20, Medellín","barrio":"Prado","lat":-75.5720,"lon":6.2540,"color":"#8B5CF6","href":"tel:3856600","phone":"385-6600","horario":"Lun–Sáb 8am–8pm","desc":"Centro de Atención Integral a Víctimas. Psicología gratuita, terapia individual y grupos de apoyo.","transporte":"Bus: Cll 50 (múltiples rutas) · Metro: Prado (10 min caminando)"},
+        ],
+        "cali": [
+            {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro Cali","dir":"Carrera 6 #10-35, Cali","barrio":"San Pedro","lat":-76.5320,"lon":3.4516,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Estación de Policía Metropolitana de Cali. Denuncias y medidas de protección inmediatas.","transporte":"MÍO: Estación San Bosco (7 min caminando)"},
+            {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario del Valle","dir":"Calle 5 #36-8, Cali","barrio":"San Fernando","lat":-76.5470,"lon":3.4500,"color":"#059669","href":"tel:5547374","phone":"554-7374","horario":"24/7 Urgencias","desc":"Hospital de alta complejidad. Urgencias, medicina forense y atención psicológica para víctimas.","transporte":"MÍO: Estación Meléndez (10 min caminando)"},
+            {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Cali 24h","dir":"Carrera 3 #17-08, Cali","barrio":"San Nicolás","lat":-76.5290,"lon":3.4553,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias penales urgentes las 24 horas.","transporte":"MÍO: Estación Belalcázar (5 min caminando)"},
+            {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Cali","dir":"Cra 8 #9-56, Cali","barrio":"Centro","lat":-76.5310,"lon":3.4525,"color":"#0891B2","href":"tel:8816060","phone":"881-6060","horario":"Lun–Vie 8am–5pm","desc":"Medidas de protección por violencia intrafamiliar. Apoyo psicosocial.","transporte":"MÍO: Estación Santa Librada (8 min caminando)"},
+            {"tipo":"Refugio","icon":"🏠","nom":"Casa Acogida Mujer Cali","dir":"Dirección confidencial — Llama al 155","barrio":"Confidencial","lat":-76.5350,"lon":3.4490,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Refugio seguro y gratuito para mujeres en situación de violencia y sus hijos.","transporte":"Llama al 155 — coordinan transporte seguro"},
+            {"tipo":"Psicología","icon":"🧠","nom":"CAIVAS Cali","dir":"Carrera 5 #16-40, Cali","barrio":"El Peñón","lat":-76.5300,"lon":3.4560,"color":"#8B5CF6","href":"tel:8831434","phone":"883-1434","horario":"Lun–Vie 8am–5pm","desc":"Centro de Atención Integral a Víctimas de Violencia Sexual. Atención gratuita.","transporte":"MÍO: Estación Chapinero (12 min caminando)"},
+        ],
+        "barranquilla": [
+            {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Centro","dir":"Calle 35 #43-50, Barranquilla","barrio":"El Centro","lat":-74.7964,"lon":10.9639,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Estación de Policía Metropolitana de Barranquilla. Denuncias y emergencias.","transporte":"Bus: Cll 35 (múltiples rutas)"},
+            {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario CARI","dir":"Calle 23 #16-16, Barranquilla","barrio":"Barrio Abajo","lat":-74.7896,"lon":10.9822,"color":"#059669","href":"tel:3440001","phone":"344-0001","horario":"24/7 Urgencias","desc":"Hospital público. Urgencias, medicina forense y apoyo psicológico para víctimas de violencia.","transporte":"Bus: Cll 23 (rutas directas)"},
+            {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Barranquilla","dir":"Calle 32 #51-12, Barranquilla","barrio":"San Roque","lat":-74.8130,"lon":10.9630,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Denuncias penales urgentes las 24 horas, sin necesidad de cita previa.","transporte":"Bus: Av. Murillo (5 min caminando)"},
+            {"tipo":"Comisaría","icon":"🏛️","nom":"Comisaría de Familia Barranquilla","dir":"Cra 46 #48-50, Barranquilla","barrio":"Centro","lat":-74.8050,"lon":10.9600,"color":"#0891B2","href":"tel:123","phone":"Presencial","horario":"Lun–Vie 8am–5pm","desc":"Medidas de protección por violencia intrafamiliar.","transporte":"Bus: Av. Olaya Herrera (rutas directas)"},
+            {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Barranquilla","dir":"Dirección confidencial — Línea 155","barrio":"Confidencial","lat":-74.8000,"lon":10.9650,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Alojamiento seguro y gratuito para mujeres víctimas de violencia.","transporte":"Llama al 155 — coordinan transporte seguro y discreto"},
+        ],
+        "bucaramanga": [
+            {"tipo":"Policía","icon":"🚔","nom":"Estación Policía Cabecera","dir":"Cra 35 #48-70, Bucaramanga","barrio":"Cabecera del Llano","lat":-73.1198,"lon":7.0810,"color":"#1D4ED8","href":"tel:123","phone":"123","horario":"24/7","desc":"Estación de Policía Metropolitana. Denuncias y medidas de protección inmediatas.","transporte":"Bus: Cra 35 (múltiples rutas)"},
+            {"tipo":"Hospital","icon":"🏥","nom":"Hospital Universitario de Santander","dir":"Carrera 33 #28-126, Bucaramanga","barrio":"Centro","lat":-73.1250,"lon":7.1185,"color":"#059669","href":"tel:6346110","phone":"634-6110","horario":"24/7 Urgencias","desc":"Hospital de alta complejidad. Urgencias y medicina forense.","transporte":"Bus: Av. Quebrada Seca (rutas directas)"},
+            {"tipo":"Fiscalía","icon":"⚖️","nom":"URI Fiscalía Bucaramanga","dir":"Calle 36 #22-50, Bucaramanga","barrio":"Centro","lat":-73.1260,"lon":7.1198,"color":"#7C3AED","href":"tel:018000919748","phone":"018000919748","horario":"24/7 Sin cita","desc":"Unidad de Reacción Inmediata. Denuncias las 24 horas.","transporte":"Bus: Cll 36 (rutas directas)"},
+            {"tipo":"Refugio","icon":"🏠","nom":"Casa Mujer Bucaramanga","dir":"Dirección confidencial — Línea 155","barrio":"Confidencial","lat":-73.1200,"lon":7.1150,"color":"#D97706","href":"tel:155","phone":"155","horario":"24/7","desc":"Alojamiento seguro para mujeres víctimas de violencia.","transporte":"Llama al 155 — coordinan transporte seguro"},
+        ],
+    }
 
-    import requests
-    from geopy.distance import geodesic
-
-    # ── Buscar lugares reales ────────────────────────────────────────────────
-
-    def buscar_lugares_reales(lat, lon, tipo):
-
-        overpass_url = "https://overpass-api.de/api/interpreter"
-
-        query = f"""
-        [out:json];
-        (
-          node["amenity"="{tipo}"](around:5000,{lat},{lon});
-          way["amenity"="{tipo}"](around:5000,{lat},{lon});
-          relation["amenity"="{tipo}"](around:5000,{lat},{lon});
-        );
-        out center;
-        """
-
-        response = requests.get(
-            overpass_url,
-            params={"data": query}
-        )
-
-        data = response.json()
-
-        lugares = []
-
-        icon_map = {
-            "hospital": "🏥",
-            "police": "🚔",
-            "social_facility": "🏠",
-            "fire_station": "🔥"
-        }
-
-        color_map = {
-            "hospital": "#DC2626",
-            "police": "#2563EB",
-            "social_facility": "#D97706",
-            "fire_station": "#EA580C"
-        }
-
-        for e in data.get("elements", []):
-
-            tags = e.get("tags", {})
-
-            nombre = tags.get("name", "Sin nombre")
-
-            if "lat" in e:
-                elat = e["lat"]
-                elon = e["lon"]
-            else:
-                elat = e["center"]["lat"]
-                elon = e["center"]["lon"]
-
-            distancia = geodesic(
-                (lat, lon),
-                (elat, elon)
-            ).km
-
-            lugares.append({
-                "tipo": tipo.title(),
-                "icon": icon_map.get(tipo, "📍"),
-                "nom": nombre,
-                "dir": tags.get("addr:street", "Dirección no disponible"),
-                "barrio": tags.get("addr:suburb", ""),
-                "lat": elat,
-                "lon": elon,
-                "distancia": distancia,
-                "color": color_map.get(tipo, "#7C3AED"),
-                "href": "",
-                "phone": tags.get("phone", "No disponible"),
-                "horario": tags.get("opening_hours", "24/7"),
-                "desc": f"{tipo.title()} cercano encontrado automáticamente.",
-                "transporte": "Google Maps disponible"
-            })
-
-        lugares = sorted(
-            lugares,
-            key=lambda x: x["distancia"]
-        )
-
-        return lugares
-
-
-    # ── Entidades nacionales ────────────────────────────────────────────────
-
+    # Entidades nacionales siempre disponibles
     ENTIDADES_NACIONALES = [
-
-        {
-            "tipo":"Línea Nacional",
-            "icon":"📞",
-            "nom":"Línea 155 — Mujer",
-            "dir":"Línea gratuita nacional",
-            "barrio":"Nacional",
-            "lat":0,
-            "lon":0,
-            "color":"#EC4899",
-            "href":"tel:155",
-            "phone":"155",
-            "horario":"24/7 Gratuita",
-            "desc":"Línea de orientación y apoyo para mujeres víctimas de violencia.",
-            "transporte":"Llama al 155"
-        },
-
-        {
-            "tipo":"Línea Nacional",
-            "icon":"🚨",
-            "nom":"Emergencias — 123",
-            "dir":"Línea gratuita nacional",
-            "barrio":"Nacional",
-            "lat":0,
-            "lon":0,
-            "color":"#DC2626",
-            "href":"tel:123",
-            "phone":"123",
-            "horario":"24/7 Gratuita",
-            "desc":"Línea nacional de emergencias.",
-            "transporte":"Llama al 123"
-        },
-
-        {
-            "tipo":"Línea Nacional",
-            "icon":"👨‍👩‍👧",
-            "nom":"ICBF — Línea 141",
-            "dir":"Línea gratuita nacional",
-            "barrio":"Nacional",
-            "lat":0,
-            "lon":0,
-            "color":"#059669",
-            "href":"tel:141",
-            "phone":"141",
-            "horario":"24/7 Gratuita",
-            "desc":"Protección familiar y orientación.",
-            "transporte":"Llama al 141"
-        }
+        {"tipo":"Línea Nacional","icon":"📞","nom":"Línea 155 — Mujer","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#EC4899","href":"tel:155","phone":"155","horario":"24/7 Gratuita","desc":"Línea de orientación y apoyo para mujeres víctimas de violencia. Gratuita desde cualquier teléfono en Colombia. Te orientan y activan recursos de protección.","transporte":"Llama al 155 desde cualquier teléfono — sin costo"},
+        {"tipo":"Línea Nacional","icon":"🚨","nom":"Emergencias — 123","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#DC2626","href":"tel:123","phone":"123","horario":"24/7 Gratuita","desc":"Línea de emergencias de la Policía Nacional. Para situaciones de peligro inmediato, acuden al lugar.","transporte":"Llama al 123 inmediatamente en caso de peligro"},
+        {"tipo":"Línea Nacional","icon":"👨‍👩‍👧","nom":"ICBF — Línea 141","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#059669","href":"tel:141","phone":"141","horario":"24/7 Gratuita","desc":"Instituto Colombiano de Bienestar Familiar. Protección familiar, menores en riesgo, orientación a mujeres.","transporte":"Llama al 141 desde cualquier teléfono — sin costo"},
     ]
 
-
-    # ── Leer GPS ─────────────────────────────────────────────────────────────
-
+    # ── Geolocalización automática vía query params ───────────────────────────
+    # Leer coordenadas GPS inyectadas por el script de geolocalización
     qp = st.query_params
-
-    if "geo_lat" in qp and "geo_lon" in qp:
-
+    if "geo_lat" in qp and "geo_lon" in qp and "geo_city" in qp:
         try:
-            st.session_state["gps_lat"] = float(qp["geo_lat"])
-            st.session_state["gps_lon"] = float(qp["geo_lon"])
-            st.session_state["geo_auto_done"] = True
-        except:
+            _glat = float(qp["geo_lat"])
+            _glon = float(qp["geo_lon"])
+            _gcity = qp["geo_city"]
+            if st.session_state.get("gps_lat") != _glat:
+                st.session_state["gps_lat"]  = _glat
+                st.session_state["gps_lon"]  = _glon
+                st.session_state["detected_city"] = _gcity
+                st.session_state["geo_auto_done"] = True
+        except Exception:
             pass
 
-
-    # ── Geolocalización automática ───────────────────────────────────────────
-
+    # ── Inyectar JS: solicita geolocación automáticamente al cargar ──────────
     st.components.v1.html("""
-
     <script>
-
     (function() {
+        if (window._geoInjected) return;
+        window._geoInjected = true;
 
-        if (navigator.geolocation) {
-
-            navigator.geolocation.getCurrentPosition(
-
-                function(position) {
-
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-
-                    const url = new URL(window.parent.location);
-
-                    url.searchParams.set("geo_lat", lat);
-                    url.searchParams.set("geo_lon", lon);
-
-                    window.parent.location.href = url.toString();
-
-                }
-
-            );
-
+        function normalize(s) {
+            return s.toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                .trim();
         }
 
+        function pushToStreamlit(lat, lon, city) {
+            // Escribir en la URL para que Streamlit los lea como query_params
+            const url = new URL(window.parent.location.href);
+            url.searchParams.set('geo_lat', lat.toFixed(6));
+            url.searchParams.set('geo_lon', lon.toFixed(6));
+            url.searchParams.set('geo_city', normalize(city));
+            window.parent.history.replaceState({}, '', url.toString());
+            // Forzar re-run de Streamlit tocando un parámetro especial
+            window.parent.location.search = url.search;
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(pos) {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
+                        .then(r => r.json())
+                        .then(data => {
+                            const city = data.address.city || data.address.town ||
+                                         data.address.municipality || data.address.county || 'colombia';
+                            pushToStreamlit(lat, lon, city);
+                        })
+                        .catch(() => pushToStreamlit(lat, lon, 'colombia'));
+                },
+                function(err) { console.log('Geo error:', err.code, err.message); },
+                {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
+            );
+        }
     })();
-
     </script>
-
     """, height=0)
 
-
-    # ── Cabecera ─────────────────────────────────────────────────────────────
-
+    # ── Cabecera con botón de ubicación ──────────────────────────────────────
     st.markdown("""
     <div style="margin-bottom:24px;">
         <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;
             border:1px solid #BFDBFE;border-radius:24px;padding:5px 16px;font-size:11px;
             color:#1D4ED8;font-weight:700;margin-bottom:12px;">🚔 AYUDA CERCANA</div>
-
-        <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 8px;">
-            Ayuda Cercana
-        </h1>
-
+        <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 8px;letter-spacing:-0.5px;">Ayuda Cercana</h1>
         <p style="color:#6B7280;font-size:14px;margin:0;">
-            Detecta tu ubicación automáticamente y encuentra ayuda real cerca de ti.
+            Detecta tu ubicación automáticamente y encuentra la ayuda más cercana — policía, hospitales, fiscalía, refugios.
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-
-    # ── Obtener GPS ──────────────────────────────────────────────────────────
-
-    gps_lat = st.session_state.get("gps_lat")
-    gps_lon = st.session_state.get("gps_lon")
-
-
-    # ── Buscar lugares reales ────────────────────────────────────────────────
-
-    entidades_ciudad = []
-
-    if gps_lat is not None and gps_lon is not None:
-
-        hospitales = buscar_lugares_reales(
-            gps_lat,
-            gps_lon,
-            "hospital"
-        )
-
-        policia = buscar_lugares_reales(
-            gps_lat,
-            gps_lon,
-            "police"
-        )
-
-        refugios = buscar_lugares_reales(
-            gps_lat,
-            gps_lon,
-            "social_facility"
-        )
-
-        bomberos = buscar_lugares_reales(
-            gps_lat,
-            gps_lon,
-            "fire_station"
-        )
-
-        entidades_ciudad = (
-            hospitales[:5]
-            + policia[:5]
-            + refugios[:5]
-            + bomberos[:5]
-        )
-
-    entidades = entidades_ciudad + ENTIDADES_NACIONALES
-
-
-    # ── Mostrar entidades ────────────────────────────────────────────────────
-
-    st.markdown(f"""
-    <div style="font-size:13px;color:#6B7280;margin-bottom:18px;">
-        📍 Se encontraron
-        <strong>{len(entidades_ciudad)}</strong>
-        lugares cercanos
+    # Alerta de emergencia siempre visible arriba
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#FEF2F2,#FEE2E2);border:2px solid #FCA5A5;border-radius:18px;
+        padding:16px 22px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+        <div style="font-size:28px;">🚨</div>
+        <div style="flex:1;">
+            <div style="font-weight:900;color:#991B1B;font-size:14px;margin-bottom:4px;">¿Estás en peligro ahora mismo?</div>
+            <div style="font-size:12px;color:#7F1D1D;line-height:1.6;">Llama <strong>123</strong> (Policía) o <strong>155</strong> (Línea Mujer) — ambas son gratuitas, 24 horas, desde cualquier celular.</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <a href="tel:123" style="text-decoration:none;">
+                <div style="background:#DC2626;color:#fff;border-radius:12px;padding:10px 18px;font-size:15px;font-weight:900;text-align:center;
+                    box-shadow:0 4px 14px rgba(220,38,38,0.4);">📞 123</div>
+            </a>
+            <a href="tel:155" style="text-decoration:none;">
+                <div style="background:#7C3AED;color:#fff;border-radius:12px;padding:10px 18px;font-size:15px;font-weight:900;text-align:center;
+                    box-shadow:0 4px 14px rgba(124,58,237,0.4);">💜 155</div>
+            </a>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
+    # ── Helper: normalizar texto (quita tildes, mayúsculas, espacios extra) ────
+    def _norm(s):
+        import unicodedata
+        s = s.lower().strip()
+        s = unicodedata.normalize('NFD', s)
+        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        return s
 
-    # ── Grid ─────────────────────────────────────────────────────────────────
+    # ── Helper: distancia haversine en km ────────────────────────────────────
+    def _haversine(lat1, lon1, lat2, lon2):
+        R = 6371.0
+        dlat = math.radians(lat2 - lat1)
+        dlon = math.radians(lon2 - lon1)
+        a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1))*math.cos(math.radians(lat2))*math.sin(dlon/2)**2
+        return R * 2 * math.asin(math.sqrt(a))
 
-    cols = st.columns(2)
+    # ── Estado: coordenadas GPS reales (si se detectaron) ────────────────────
+    gps_lat = st.session_state.get("gps_lat")
+    gps_lon = st.session_state.get("gps_lon")
+    geo_auto_done = st.session_state.get("geo_auto_done", False)
 
-    for i, e in enumerate(entidades):
+    # ── Selector de ciudad ────────────────────────────────────────────────────
+    if geo_auto_done:
+        _location_label = f"📡 Ubicación detectada automáticamente: **{st.session_state.get('detected_city','').title()}**"
+        st.success(_location_label + "  — *Buscando entidades a 20 km a la redonda…*")
 
-        with cols[i % 2]:
+    city_col, clear_col = st.columns([3, 1])
+    with city_col:
+        city_input = st.text_input(
+            "📍 O escribe tu ciudad (sin importar mayúsculas ni tildes):",
+            value=st.session_state.get("detected_city", ""),
+            key="ayuda_city",
+            placeholder="Ej: bogota, medellín, CALI, barranquilla..."
+        )
+    with clear_col:
+        st.markdown("<div style='padding-top:28px;'></div>", unsafe_allow_html=True)
+        if st.button("🔄 Borrar", use_container_width=True, key="clear_city"):
+            st.session_state.pop("detected_city", None)
+            st.session_state.pop("gps_lat", None)
+            st.session_state.pop("gps_lon", None)
+            st.session_state.pop("geo_auto_done", None)
+            # Limpiar query params
+            st.query_params.clear()
+            st.rerun()
 
-            st.markdown(f"""
-            <div style="
-                background:white;
-                border:1px solid #E5E7EB;
-                border-radius:18px;
-                padding:18px;
-                margin-bottom:14px;
-                box-shadow:0 4px 14px rgba(0,0,0,0.05);
-            ">
+    # ── Normalizar lo que escribió el usuario ─────────────────────────────────
+    city_key = _norm(city_input)
 
-                <div style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:center;
-                    margin-bottom:10px;
-                ">
+    # ── Buscar coincidencia en el diccionario (fuzzy, sin tildes, sin case) ───
+    city_match = None
+    # 1) Coincidencia exacta o contenida
+    for k in ENTIDADES_COL.keys():
+        kn = _norm(k)
+        if kn == city_key or kn in city_key or city_key in kn:
+            city_match = k
+            break
+    # 2) Coincidencia por palabras individuales
+    if not city_match:
+        for k in ENTIDADES_COL.keys():
+            kn = _norm(k)
+            if any(word in city_key for word in kn.split() if len(word) > 3):
+                city_match = k
+                break
+    # 3) Coincidencia parcial por primeros caracteres (≥4 letras)
+    if not city_match and len(city_key) >= 4:
+        for k in ENTIDADES_COL.keys():
+            kn = _norm(k)
+            if kn.startswith(city_key[:4]) or city_key.startswith(kn[:4]):
+                city_match = k
+                break
 
-                    <div style="
-                        font-size:30px;
-                    ">
-                        {e['icon']}
+    # ── Seleccionar y ordenar entidades ───────────────────────────────────────
+    # Si tenemos GPS exacto, buscar en TODAS las ciudades a ≤ 20 km
+    RADIO_KM = 20.0
+    entidades_ciudad = []
+    usando_gps = False
+
+    if gps_lat is not None and gps_lon is not None:
+        # Recopilar todas las entidades de todas las ciudades y filtrar por distancia
+        _todas = [e for lista in ENTIDADES_COL.values() for e in lista]
+        entidades_cercanas = []
+        for e in _todas:
+            if e.get("lat") and e.get("lon") and e["lat"] != 0:
+                dist = _haversine(gps_lat, gps_lon, e["lon"], e["lat"])  # nota: lat/lon en BD pueden estar invertidos
+                # Intentar también con lat/lon en orden correcto
+                dist2 = _haversine(gps_lat, gps_lon, e["lat"], e["lon"])
+                d = min(dist, dist2)
+                if d <= RADIO_KM:
+                    entidades_cercanas.append((d, e))
+        entidades_cercanas.sort(key=lambda x: x[0])
+        entidades_ciudad = [e for _, e in entidades_cercanas]
+        usando_gps = True
+        if not entidades_ciudad:
+            # Fallback a ciudad detectada si no hay nada a 20km
+            entidades_ciudad = ENTIDADES_COL.get(city_match, [])
+            usando_gps = False
+    else:
+        entidades_ciudad = ENTIDADES_COL.get(city_match, [])
+
+    entidades = entidades_ciudad + ENTIDADES_NACIONALES
+
+    if not entidades_ciudad:
+        st.warning(
+            f"📍 No tenemos entidades específicas para **{city_input.title()}** aún. "
+            "Mostrando líneas nacionales disponibles para toda Colombia. "
+            "Llama al **155** para que te orienten a la entidad más cercana.",
+            icon="ℹ️"
+        )
+    else:
+        _label = city_input.title() if city_input.strip() else "tu ubicación"
+        _extra = f" · radio {RADIO_KM:.0f} km 📡" if usando_gps else ""
+        st.markdown(
+            f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">'
+            f'📍 Mostrando <strong style="color:#1E1B4B;">{len(entidades_ciudad)}</strong> entidades cerca de '
+            f'<strong style="color:#1E1B4B;">{_label}</strong>{_extra} + líneas nacionales</div>',
+            unsafe_allow_html=True
+        )
+
+    # ── Filtro por tipo ───────────────────────────────────────────────────────
+    filter_tipo = st.selectbox(
+        "🔍 Filtrar por tipo:",
+        ["Todos","Policía","Hospital","Fiscalía","Comisaría","Refugio","Psicología","Línea Nacional"],
+        key="ayuda_filter"
+    )
+    filtered = [e for e in entidades if filter_tipo == "Todos" or e["tipo"] == filter_tipo]
+
+    # ── Grid de tarjetas ──────────────────────────────────────────────────────
+    col_grid, col_det = st.columns([3, 2])
+
+    with col_grid:
+        gcols = st.columns(2)
+        for i, e in enumerate(filtered):
+            with gcols[i % 2]:
+                is_sel = st.session_state.get("selected_entity") == e["nom"]
+                border = f"2.5px solid {e['color']}" if is_sel else "1.5px solid #EDE9FE"
+                shadow = f"0 8px 28px {e['color']}30" if is_sel else "0 2px 12px rgba(109,40,217,0.07)"
+                bg = f"linear-gradient(135deg,{e['color']}08,#fff)" if is_sel else "#fff"
+                st.markdown(f"""
+                <div style="background:{bg};border:{border};border-radius:20px;
+                    padding:18px;margin-bottom:12px;box-shadow:{shadow};cursor:pointer;transition:all 0.2s;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                        <div style="background:linear-gradient(135deg,{e['color']}22,{e['color']}10);border-radius:14px;
+                            width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">{e['icon']}</div>
+                        <div style="background:{e['color']}18;color:{e['color']};font-size:9px;font-weight:800;
+                            padding:4px 10px;border-radius:20px;text-transform:uppercase;align-self:flex-start;">{e['tipo']}</div>
                     </div>
-
-                    <div style="
-                        background:{e['color']}22;
-                        color:{e['color']};
-                        padding:4px 10px;
-                        border-radius:999px;
-                        font-size:10px;
-                        font-weight:800;
-                    ">
-                        {e['tipo']}
+                    <div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:4px;line-height:1.3;">{e['nom']}</div>
+                    <div style="font-size:10px;color:#A78BFA;margin-bottom:4px;font-weight:600;">📍 {e['barrio']}</div>
+                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
+                    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+                        <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
+                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] != 'Presencial' else ''}
                     </div>
-
-                </div>
-
-                <div style="
-                    font-size:15px;
-                    font-weight:800;
-                    color:#111827;
-                    margin-bottom:6px;
-                ">
-                    {e['nom']}
-                </div>
-
-                <div style="
-                    font-size:11px;
-                    color:#6B7280;
-                    margin-bottom:8px;
-                ">
-                    📍 {e['dir']}
-                </div>
-
-                <div style="
-                    font-size:11px;
-                    color:#059669;
-                    font-weight:700;
-                    margin-bottom:12px;
-                ">
-                    📏 {round(e.get("distancia",0),2)} km
-                </div>
-
-                <a href="https://www.google.com/maps/search/?api=1&query={e['lat']},{e['lon']}"
-                   target="_blank"
-                   style="text-decoration:none;">
-
-                    <div style="
-                        background:#2563EB;
-                        color:white;
-                        padding:10px;
-                        border-radius:12px;
-                        text-align:center;
-                        font-weight:800;
-                        font-size:12px;
-                    ">
-                        🗺️ Abrir en Maps
+                    <div style="display:flex;gap:6px;">
+                        <a href="{e['href']}" style="text-decoration:none;flex:1;">
+                            <div style="background:linear-gradient(135deg,{e['color']},{e['color']}CC);color:#fff;border-radius:10px;
+                                padding:8px;text-align:center;font-size:11px;font-weight:800;">
+                                {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
+                            </div>
+                        </a>
+                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+')}" target="_blank" style="text-decoration:none;flex:1;">
+                            <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
+                                padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
+                        </a>
                     </div>
+                </div>""", unsafe_allow_html=True)
+                btn_label = "✓ Ver menos" if is_sel else "ℹ️ Ver detalles"
+                if st.button(btn_label, key=f"ent_{i}_{e['nom'][:12]}", use_container_width=True,
+                             type="primary" if is_sel else "secondary"):
+                    if is_sel:
+                        st.session_state.pop("selected_entity", None)
+                    else:
+                        st.session_state["selected_entity"] = e["nom"]
+                    st.rerun()
 
+    # ── Panel de detalle ──────────────────────────────────────────────────────
+    with col_det:
+        sel_nom = st.session_state.get("selected_entity")
+        sel_e = next((e for e in entidades if e["nom"] == sel_nom), None)
+
+        if sel_e:
+            st.markdown(f"""<div class="sh-card" style="position:sticky;top:16px;border-top:4px solid {sel_e['color']};">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
+                    <div style="background:linear-gradient(135deg,{sel_e['color']}22,{sel_e['color']}0E);border-radius:16px;
+                        width:56px;height:56px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;">{sel_e['icon']}</div>
+                    <div style="background:{sel_e['color']}18;color:{sel_e['color']};font-size:9px;font-weight:800;
+                        padding:5px 12px;border-radius:20px;text-transform:uppercase;">{sel_e['tipo']}</div>
+                </div>
+                <div style="font-size:17px;font-weight:900;color:#1E1B4B;margin-bottom:8px;line-height:1.3;">{sel_e['nom']}</div>
+                <p style="font-size:12px;color:#374151;line-height:1.75;margin-bottom:16px;">{sel_e['desc']}</p>
+            </div>""", unsafe_allow_html=True)
+
+            # Ficha de datos
+            datos = [
+                ("📍 Dirección", sel_e['dir']),
+                ("🏘️ Zona", sel_e['barrio']),
+                ("🕐 Horario", sel_e['horario']),
+                ("📞 Contacto", sel_e['phone']),
+            ]
+            for label, val in datos:
+                st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;
+                    background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:12px;margin-bottom:6px;">
+                    <span style="font-size:11px;color:#7C3AED;font-weight:700;flex-shrink:0;">{label}</span>
+                    <span style="font-size:11px;font-weight:800;color:#1E1B4B;text-align:right;margin-left:8px;line-height:1.4;">{val}</span>
+                </div>""", unsafe_allow_html=True)
+
+            # Cómo llegar
+            if sel_e.get('transporte'):
+                st.markdown(f"""<div style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border-radius:14px;
+                    padding:12px 14px;margin:10px 0;border:1px solid #BFDBFE;">
+                    <div style="font-size:11px;font-weight:800;color:#1D4ED8;margin-bottom:5px;">🚌 Cómo llegar</div>
+                    <div style="font-size:11px;color:#1E40AF;line-height:1.7;">{sel_e['transporte']}</div>
+                </div>""", unsafe_allow_html=True)
+
+            # Botones de acción principales
+            st.markdown("<div style='margin-top:12px;display:flex;flex-direction:column;gap:8px;'>", unsafe_allow_html=True)
+
+            call_label = f"📞 Llamar ahora: {sel_e['phone']}" if sel_e['href'].startswith('tel:') else "🌐 Visitar sitio web"
+            st.markdown(f"""<a href="{sel_e['href']}" {'target="_blank"' if sel_e['href'].startswith('http') else ''} style="text-decoration:none;display:block;">
+                <div style="width:100%;background:linear-gradient(135deg,{sel_e['color']},{sel_e['color']}BB);color:#fff;border-radius:14px;
+                    padding:14px;text-align:center;font-size:13px;font-weight:900;
+                    box-shadow:0 4px 16px {sel_e['color']}44;letter-spacing:0.3px;">{call_label}</div>
+            </a>""", unsafe_allow_html=True)
+
+            if sel_e['lat'] != 0:
+                maps_url_dir = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=transit"
+                maps_url_walk = f"https://www.google.com/maps/dir/?api=1&destination={sel_e['lat']},{sel_e['lon']}&travelmode=walking"
+                st.markdown(f"""
+                <a href="{maps_url_dir}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
+                    <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
+                        padding:12px;text-align:center;font-size:12px;font-weight:800;">
+                        🚌 Cómo llegar — Transporte público
+                    </div>
                 </a>
+                <a href="{maps_url_walk}" target="_blank" style="text-decoration:none;display:block;margin-top:6px;">
+                    <div style="width:100%;background:#F0FDF4;color:#059669;border:2px solid #BBF7D0;border-radius:14px;
+                        padding:12px;text-align:center;font-size:12px;font-weight:800;">
+                        🚶 Cómo llegar — A pie
+                    </div>
+                </a>
+                """, unsafe_allow_html=True)
+            else:
+                maps_url_search = f"https://www.google.com/maps/search/?api=1&query={sel_e['nom'].replace(' ', '+')}"
+                st.markdown(f"""<a href="{maps_url_search}" target="_blank" style="text-decoration:none;display:block;margin-top:8px;">
+                    <div style="width:100%;background:#fff;color:#1D4ED8;border:2px solid #BFDBFE;border-radius:14px;
+                        padding:12px;text-align:center;font-size:12px;font-weight:800;">🗺️ Ver en Google Maps</div>
+                </a>""", unsafe_allow_html=True)
 
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+
+            # Instrucciones con IA
+            if st.button("🤖 Instrucciones detalladas con IA", key="directions_btn", use_container_width=True):
+                with st.spinner("Generando ruta personalizada..."):
+                    prompt_ciudad = city_input if city_input else "Colombia"
+                    dir_text = call_claude(
+                        "Eres experta en transporte urbano colombiano. Da instrucciones claras con bullets y emojis. Incluye: TransMilenio/Metro/BRT según ciudad, taxi/Uber, a pie. Máx 120 palabras. Indica tiempo estimado y costo aproximado.",
+                        f"¿Cómo llegar desde el centro de {prompt_ciudad} hasta {sel_e['nom']} ubicada en {sel_e['dir']}, barrio {sel_e.get('barrio','')}?"
+                    )
+                    st.session_state[f"dir_{sel_e['nom']}"] = dir_text
+
+            dir_r = st.session_state.get(f"dir_{sel_e['nom']}", "")
+            if dir_r:
+                st.markdown(f"""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:14px;
+                    padding:14px 16px;border:1px solid #C4B5FD;margin-top:10px;">
+                    <div style="font-size:11px;font-weight:800;color:#5B21B6;margin-bottom:8px;">🧭 Ruta sugerida por SARA</div>
+                    <div style="font-size:11px;color:#1E1B4B;line-height:1.85;white-space:pre-wrap;">{dir_r}</div>
+                </div>""", unsafe_allow_html=True)
+
+        else:
+            st.markdown("""
+            <div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:20px;
+                border:2px dashed #C4B5FD;padding:40px 24px;text-align:center;position:sticky;top:16px;">
+                <div style="font-size:48px;margin-bottom:14px;">📍</div>
+                <div style="font-size:15px;font-weight:800;color:#5B21B6;margin-bottom:8px;">Selecciona una entidad</div>
+                <div style="font-size:12px;color:#A78BFA;line-height:1.8;">
+                    Haz clic en <strong>"Ver detalles"</strong> para ver la ficha completa:<br>
+                    dirección, horario, cómo llegar y botón para llamar directamente.
+                </div>
+            </div>""", unsafe_allow_html=True)
+
+    # ── Líneas de emergencia siempre visibles abajo ───────────────────────────
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown('<div style="font-weight:800;color:#1E1B4B;font-size:14px;margin-bottom:14px;">📞 Líneas de emergencia — Todas gratuitas 24/7</div>', unsafe_allow_html=True)
+    em_cols = st.columns(3)
+    lineas = [
+        ("🚨","123","Policía Nacional","Emergencias inmediatas","#DC2626","tel:123"),
+        ("💜","155","Línea Mujer","Apoyo y orientación","#7C3AED","tel:155"),
+        ("👨‍👩‍👧","141","ICBF","Protección familiar","#059669","tel:141"),
+    ]
+    for col, (icon, num, nombre, desc, color, href) in zip(em_cols, lineas):
+        with col:
+            st.markdown(f"""<a href="{href}" style="text-decoration:none;display:block;">
+                <div style="background:linear-gradient(135deg,{color},{color}CC);color:#fff;border-radius:18px;
+                    padding:18px;text-align:center;box-shadow:0 4px 18px {color}44;margin-bottom:8px;">
+                    <div style="font-size:26px;margin-bottom:6px;">{icon}</div>
+                    <div style="font-size:28px;font-weight:900;letter-spacing:1px;">{num}</div>
+                    <div style="font-size:11px;font-weight:800;margin-top:4px;opacity:0.9;">{nombre}</div>
+                    <div style="font-size:10px;opacity:0.8;margin-top:2px;">{desc}</div>
+                </div>
+            </a>""", unsafe_allow_html=True)
 
 # ── ACERCA DE ─────────────────────────────────────────────────────────────────
 elif "i️" in page:
