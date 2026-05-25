@@ -10,6 +10,8 @@ import numpy as np
 import pandas as pd
 from groq import Groq
 import plotly.graph_objects as go
+from streamlit_js_eval import get_geolocation
+import requests
 
 # ─── CARGAR MODELOS PKL ───────────────────────────────────────────────────────
 
@@ -4914,68 +4916,38 @@ elif "🚔" in page:
         {"tipo":"Línea Nacional","icon":"👨‍👩‍👧","nom":"ICBF — Línea 141","dir":"Línea gratuita nacional","barrio":"Nacional","lat":0,"lon":0,"color":"#059669","href":"tel:141","phone":"141","horario":"24/7 Gratuita","desc":"Instituto Colombiano de Bienestar Familiar. Protección familiar, menores en riesgo, orientación a mujeres.","transporte":"Llama al 141 desde cualquier teléfono — sin costo"},
     ]
 
-    # ── Geolocalización automática vía query params ───────────────────────────
-    # Leer coordenadas GPS inyectadas por el script de geolocalización
-    qp = st.query_params
-    if "geo_lat" in qp and "geo_lon" in qp and "geo_city" in qp:
+    # ── Geolocalización automática ────────────────────────────────────────────────
+if "geo_auto_done" not in st.session_state:
+    with st.spinner("📡 Detectando tu ubicación..."):
+        loc = get_geolocation()
+
+    if loc and loc.get("coords"):
+        lat = loc["coords"]["latitude"]
+        lon = loc["coords"]["longitude"]
+
         try:
-            _glat = float(qp["geo_lat"])
-            _glon = float(qp["geo_lon"])
-            _gcity = qp["geo_city"]
-            if st.session_state.get("gps_lat") != _glat:
-                st.session_state["gps_lat"]  = _glat
-                st.session_state["gps_lon"]  = _glon
-                st.session_state["detected_city"] = _gcity
-                st.session_state["geo_auto_done"] = True
+            r = requests.get(
+                "https://nominatim.openstreetmap.org/reverse",
+                params={"lat": lat, "lon": lon, "format": "json"},
+                headers={"User-Agent": "SaraApp/1.0"},
+                timeout=5
+            )
+            addr = r.json().get("address", {})
+            city = (
+                addr.get("city")
+                or addr.get("town")
+                or addr.get("municipality")
+                or addr.get("county")
+                or ""
+            )
         except Exception:
-            pass
+            city = ""
 
-    st.components.v1.html("""
-    <script>
-    (function() {
-        if (sessionStorage.getItem('_geo_done')) return;
-
-        function norm(s) {
-            return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
-        }
-
-        function send(lat, lon, city) {
-            var url = new URL(window.parent.location.href);
-            var prev = url.searchParams.get('geo_lat');
-            var next = lat.toFixed(6);
-            if (prev === next) return;
-            sessionStorage.setItem('_geo_done', '1');
-            url.searchParams.set('geo_lat', next);
-            url.searchParams.set('geo_lon', lon.toFixed(6));
-            url.searchParams.set('geo_city', norm(city));
-            window.parent.history.replaceState({}, '', url.toString());
-            setTimeout(function() {
-                window.parent.location.href = url.toString();
-            }, 300);
-        }
-
-        if (!navigator.geolocation) return;
-
-        navigator.geolocation.getCurrentPosition(
-            function(pos) {
-                var lat = pos.coords.latitude;
-                var lon = pos.coords.longitude;
-                fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&accept-language=es')
-                    .then(function(r){ return r.json(); })
-                    .then(function(d){
-                        var a = d.address || {};
-                        var city = a.city || a.town || a.municipality || a.county || 'colombia';
-                        send(lat, lon, city);
-                    })
-                    .catch(function(){ send(lat, lon, 'colombia'); });
-            },
-            function(err){ console.warn('Geo error:', err.message); },
-            {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
-        );
-    })();
-    </script>
-    """, height=0)
-
+        st.session_state["gps_lat"]       = lat
+        st.session_state["gps_lon"]       = lon
+        st.session_state["detected_city"] = city
+        st.session_state["geo_auto_done"] = True
+        st.rerun()
     # ── Cabecera con botón de ubicación ──────────────────────────────────────
     st.markdown("""
     <div style="margin-bottom:24px;">
