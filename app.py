@@ -4917,37 +4917,37 @@ elif "🚔" in page:
     ]
 
     # ── Geolocalización automática ────────────────────────────────────────────────
-if "geo_auto_done" not in st.session_state:
-    with st.spinner("📡 Detectando tu ubicación..."):
-        loc = get_geolocation()
+    if "geo_auto_done" not in st.session_state:   # ← con indentación ✅
+        with st.spinner("📡 Detectando tu ubicación..."):
+            loc = get_geolocation()
 
-    if loc and loc.get("coords"):
-        lat = loc["coords"]["latitude"]
-        lon = loc["coords"]["longitude"]
+        if loc and loc.get("coords"):
+            lat = loc["coords"]["latitude"]
+            lon = loc["coords"]["longitude"]
 
-        try:
-            r = requests.get(
-                "https://nominatim.openstreetmap.org/reverse",
-                params={"lat": lat, "lon": lon, "format": "json"},
-                headers={"User-Agent": "SaraApp/1.0"},
-                timeout=5
-            )
-            addr = r.json().get("address", {})
-            city = (
-                addr.get("city")
-                or addr.get("town")
-                or addr.get("municipality")
-                or addr.get("county")
-                or ""
-            )
-        except Exception:
-            city = ""
+            try:
+                r = requests.get(
+                    "https://nominatim.openstreetmap.org/reverse",
+                    params={"lat": lat, "lon": lon, "format": "json"},
+                    headers={"User-Agent": "SaraApp/1.0"},
+                    timeout=5
+                )
+                addr = r.json().get("address", {})
+                city = (
+                    addr.get("city")
+                    or addr.get("town")
+                    or addr.get("municipality")
+                    or addr.get("county")
+                    or ""
+                )
+            except Exception:
+                city = ""
 
-        st.session_state["gps_lat"]       = lat
-        st.session_state["gps_lon"]       = lon
-        st.session_state["detected_city"] = city
-        st.session_state["geo_auto_done"] = True
-        st.rerun()
+            st.session_state["gps_lat"]       = lat
+            st.session_state["gps_lon"]       = lon
+            st.session_state["detected_city"] = city
+            st.session_state["geo_auto_done"] = True
+            st.rerun()
     # ── Cabecera con botón de ubicación ──────────────────────────────────────
     st.markdown("""
     <div style="margin-bottom:24px;">
