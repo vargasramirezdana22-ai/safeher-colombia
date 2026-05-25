@@ -5146,25 +5146,26 @@ elif "🚔" in page:
                 maps_q = e['dir'].replace(' ', '+').replace('#', '%23')
                 phone_badge = f'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 {e["phone"]}</div>' if e['phone'] != 'Presencial' else ''
                 call_icon = '📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'
+                dir_corta = e["dir"][:55] + ("..." if len(e["dir"]) > 55 else "")
                 html_card = f"""
                 <div style="background:{bg};border:{border};border-radius:20px;
                     padding:18px;margin-bottom:12px;box-shadow:{shadow};cursor:pointer;transition:all 0.2s;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-                        <div style="background:linear-gradient(135deg,{e['color']}22,{e['color']}10);border-radius:14px;
-                            width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">{e['icon']}</div>
-                        <div style="background:{e['color']}18;color:{e['color']};font-size:9px;font-weight:800;
-                            padding:4px 10px;border-radius:20px;text-transform:uppercase;align-self:flex-start;">{e['tipo']}</div>
+                        <div style="background:linear-gradient(135deg,{e["color"]}22,{e["color"]}10);border-radius:14px;
+                            width:46px;height:46px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">{e["icon"]}</div>
+                        <div style="background:{e["color"]}18;color:{e["color"]};font-size:9px;font-weight:800;
+                            padding:4px 10px;border-radius:20px;text-transform:uppercase;align-self:flex-start;">{e["tipo"]}</div>
                     </div>
-                    <div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:4px;line-height:1.3;">{e['nom']}</div>
-                    <div style="font-size:10px;color:#A78BFA;margin-bottom:4px;font-weight:600;">📍 {e['barrio']}</div>
-                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
+                    <div style="font-weight:800;font-size:13px;color:#1E1B4B;margin-bottom:4px;line-height:1.3;">{e["nom"]}</div>
+                    <div style="font-size:10px;color:#A78BFA;margin-bottom:4px;font-weight:600;">📍 {e["barrio"]}</div>
+                    <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{dir_corta}</div>
                     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
-                        <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
+                        <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e["horario"]}</div>
                         {phone_badge}
                     </div>
                     <div style="display:flex;gap:6px;">
-                        <a href="{e['href']}" style="text-decoration:none;flex:1;">
-                            <div style="background:linear-gradient(135deg,{e['color']},{e['color']}CC);color:#fff;border-radius:10px;
+                        <a href="{e["href"]}" style="text-decoration:none;flex:1;">
+                            <div style="background:linear-gradient(135deg,{e["color"]},{e["color"]}CC);color:#fff;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">
                                 {call_icon}
                             </div>
