@@ -4903,48 +4903,48 @@ elif "🚔" in page:
         except Exception:
             pass
 
-    # ── Inyectar JS: solicita geolocación automáticamente al cargar ──────────
     st.components.v1.html("""
     <script>
     (function() {
-        if (window._geoInjected) return;
-        window._geoInjected = true;
+        if (sessionStorage.getItem('_geo_done')) return;
 
-        function normalize(s) {
-            return s.toLowerCase()
-                .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-                .trim();
+        function norm(s) {
+            return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
         }
 
-        function pushToStreamlit(lat, lon, city) {
-            // Escribir en la URL para que Streamlit los lea como query_params
-            const url = new URL(window.parent.location.href);
-            url.searchParams.set('geo_lat', lat.toFixed(6));
+        function send(lat, lon, city) {
+            var url = new URL(window.parent.location.href);
+            var prev = url.searchParams.get('geo_lat');
+            var next = lat.toFixed(6);
+            if (prev === next) return;
+            sessionStorage.setItem('_geo_done', '1');
+            url.searchParams.set('geo_lat', next);
             url.searchParams.set('geo_lon', lon.toFixed(6));
-            url.searchParams.set('geo_city', normalize(city));
+            url.searchParams.set('geo_city', norm(city));
             window.parent.history.replaceState({}, '', url.toString());
-            // Forzar re-run de Streamlit tocando un parámetro especial
-            window.parent.location.search = url.search;
+            setTimeout(function() {
+                window.parent.location.href = url.toString();
+            }, 300);
         }
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(pos) {
-                    const lat = pos.coords.latitude;
-                    const lon = pos.coords.longitude;
-                    fetch('https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon + '&format=json&accept-language=es')
-                        .then(r => r.json())
-                        .then(data => {
-                            const city = data.address.city || data.address.town ||
-                                         data.address.municipality || data.address.county || 'colombia';
-                            pushToStreamlit(lat, lon, city);
-                        })
-                        .catch(() => pushToStreamlit(lat, lon, 'colombia'));
-                },
-                function(err) { console.log('Geo error:', err.code, err.message); },
-                {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
-            );
-        }
+        if (!navigator.geolocation) return;
+
+        navigator.geolocation.getCurrentPosition(
+            function(pos) {
+                var lat = pos.coords.latitude;
+                var lon = pos.coords.longitude;
+                fetch('https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&accept-language=es')
+                    .then(function(r){ return r.json(); })
+                    .then(function(d){
+                        var a = d.address || {};
+                        var city = a.city || a.town || a.municipality || a.county || 'colombia';
+                        send(lat, lon, city);
+                    })
+                    .catch(function(){ send(lat, lon, 'colombia'); });
+            },
+            function(err){ console.warn('Geo error:', err.message); },
+            {enableHighAccuracy: true, timeout: 12000, maximumAge: 60000}
+        );
     })();
     </script>
     """, height=0)
@@ -4984,13 +4984,38 @@ elif "🚔" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Helper: normalizar texto (quita tildes, mayúsculas, espacios extra) ────
+    # ── Helper: normalizar texto ──────────────────────────────────────────────
+    import unicodedata as _uc
     def _norm(s):
-        import unicodedata
         s = s.lower().strip()
-        s = unicodedata.normalize('NFD', s)
-        s = ''.join(c for c in s if unicodedata.category(c) != 'Mn')
+        s = _uc.normalize('NFD', s)
+        s = ''.join(c for c in s if _uc.category(c) != 'Mn')
         return s
+
+    # Índice normalizado para búsqueda rápida
+    _NORM_INDEX = {_norm(k): k for k in ENTIDADES_COL.keys()}
+
+    def _find_city(texto):
+        q = _norm(texto)
+        if not q:
+            return None
+        # 1) Exacta
+        if q in _NORM_INDEX:
+            return _NORM_INDEX[q]
+        # 2) La clave contiene el query o viceversa
+        for kn, k_orig in _NORM_INDEX.items():
+            if kn in q or q in kn:
+                return k_orig
+        # 3) Por palabras individuales (>3 chars)
+        for kn, k_orig in _NORM_INDEX.items():
+            if any(word in q for word in kn.split() if len(word) > 3):
+                return k_orig
+        # 4) Por inicio (>=4 chars)
+        if len(q) >= 4:
+            for kn, k_orig in _NORM_INDEX.items():
+                if kn.startswith(q[:4]) or q.startswith(kn[:4]):
+                    return k_orig
+        return None
 
     # ── Helper: distancia haversine en km ────────────────────────────────────
     def _haversine(lat1, lon1, lat2, lon2):
@@ -5028,32 +5053,9 @@ elif "🚔" in page:
             # Limpiar query params
             st.query_params.clear()
             st.rerun()
-
-    # ── Normalizar lo que escribió el usuario ─────────────────────────────────
-    city_key = _norm(city_input)
-
-    # ── Buscar coincidencia en el diccionario (fuzzy, sin tildes, sin case) ───
-    city_match = None
-    # 1) Coincidencia exacta o contenida
-    for k in ENTIDADES_COL.keys():
-        kn = _norm(k)
-        if kn == city_key or kn in city_key or city_key in kn:
-            city_match = k
-            break
-    # 2) Coincidencia por palabras individuales
-    if not city_match:
-        for k in ENTIDADES_COL.keys():
-            kn = _norm(k)
-            if any(word in city_key for word in kn.split() if len(word) > 3):
-                city_match = k
-                break
-    # 3) Coincidencia parcial por primeros caracteres (≥4 letras)
-    if not city_match and len(city_key) >= 4:
-        for k in ENTIDADES_COL.keys():
-            kn = _norm(k)
-            if kn.startswith(city_key[:4]) or city_key.startswith(kn[:4]):
-                city_match = k
-                break
+    
+    # ── Buscar ciudad con normalización robusta ───────────────────────────────
+    city_match = _find_city(city_input)
 
     # ── Seleccionar y ordenar entidades ───────────────────────────────────────
     # Si tenemos GPS exacto, buscar en TODAS las ciudades a ≤ 20 km
@@ -5144,7 +5146,7 @@ elif "🚔" in page:
                                 {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
                             </div>
                         </a>
-                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+')}" target="_blank" style="text-decoration:none;flex:1;">
+                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+').replace('#', '%23')}" target="_blank" style="text-decoration:none;flex:1;">
                             <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
                         </a>
