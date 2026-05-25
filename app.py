@@ -5025,7 +5025,7 @@ elif "🚔" in page:
     # ── Selector de ciudad ────────────────────────────────────────────────────
     if geo_auto_done:
         _location_label = f"📡 Ubicación detectada automáticamente: **{st.session_state.get('detected_city','').title()}**"
-        st.success(_location_label + "  — *Buscando entidades a 20 km a la redonda…*")
+        st.success(_location_label + " (si no es correcta, escribe tu ciudad manualmente o borra la detección)", icon="✅")
 
     city_col, clear_col = st.columns([3, 1])
     with city_col:
