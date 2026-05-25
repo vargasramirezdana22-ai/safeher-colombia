@@ -13,4 +13,4 @@ plotly
 folium==0.20.0
 requests
 geopy
-
+streamlit-js-eval

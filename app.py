@@ -5070,7 +5070,7 @@ elif "🚔" in page:
             st.session_state.pop("gps_lat", None)
             st.session_state.pop("gps_lon", None)
             st.session_state.pop("geo_auto_done", None)
-            # Limpiar query params
+            st.session_state.pop("ayuda_city", None)   # ← agrega esta línea aquí
             st.query_params.clear()
             st.rerun()
     
