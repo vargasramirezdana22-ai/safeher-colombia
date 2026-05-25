@@ -4879,6 +4879,33 @@ elif "🚔" in page:
              "transporte": "Llama al 155"},
         ],
     }  # fin ENTIDADES_COL
+    # ── Normalización robusta ─────────────────────────────────────────────────
+    import unicodedata as _uc
+    def _norm(s):
+        s = s.lower().strip()
+        s = _uc.normalize('NFD', s)
+        s = ''.join(c for c in s if _uc.category(c) != 'Mn')
+        return s
+
+    _NORM_INDEX = {_norm(k): k for k in ENTIDADES_COL.keys()}
+
+    def _find_city(texto):
+        q = _norm(texto)
+        if not q:
+            return None
+        if q in _NORM_INDEX:
+            return _NORM_INDEX[q]
+        for kn, k_orig in _NORM_INDEX.items():
+            if kn in q or q in kn:
+                return k_orig
+        for kn, k_orig in _NORM_INDEX.items():
+            if any(word in q for word in kn.split() if len(word) > 3):
+                return k_orig
+        if len(q) >= 4:
+            for kn, k_orig in _NORM_INDEX.items():
+                if kn.startswith(q[:4]) or q.startswith(kn[:4]):
+                    return k_orig
+        return None
 
     # Entidades nacionales siempre disponibles
     ENTIDADES_NACIONALES = [
@@ -4984,13 +5011,6 @@ elif "🚔" in page:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Helper: normalizar texto ──────────────────────────────────────────────
-    import unicodedata as _uc
-    def _norm(s):
-        s = s.lower().strip()
-        s = _uc.normalize('NFD', s)
-        s = ''.join(c for c in s if _uc.category(c) != 'Mn')
-        return s
 
     # Índice normalizado para búsqueda rápida
     _NORM_INDEX = {_norm(k): k for k in ENTIDADES_COL.keys()}
@@ -5123,7 +5143,10 @@ elif "🚔" in page:
                 border = f"2.5px solid {e['color']}" if is_sel else "1.5px solid #EDE9FE"
                 shadow = f"0 8px 28px {e['color']}30" if is_sel else "0 2px 12px rgba(109,40,217,0.07)"
                 bg = f"linear-gradient(135deg,{e['color']}08,#fff)" if is_sel else "#fff"
-                st.markdown(f"""
+                maps_q = e['dir'].replace(' ', '+').replace('#', '%23')
+                phone_badge = f'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 {e["phone"]}</div>' if e['phone'] != 'Presencial' else ''
+                call_icon = '📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'
+                html_card = f"""
                 <div style="background:{bg};border:{border};border-radius:20px;
                     padding:18px;margin-bottom:12px;box-shadow:{shadow};cursor:pointer;transition:all 0.2s;">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
@@ -5137,21 +5160,22 @@ elif "🚔" in page:
                     <div style="font-size:10px;color:#6B7280;margin-bottom:10px;line-height:1.5;">{e['dir'][:55]}{'...' if len(e['dir'])>55 else ''}</div>
                     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
                         <div style="background:#ECFDF5;color:#059669;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">🕐 {e['horario']}</div>
-                        {'<div style="background:#FFF7ED;color:#D97706;font-size:9px;font-weight:700;padding:3px 9px;border-radius:20px;">📞 ' + e['phone'] + '</div>' if e['phone'] != 'Presencial' else ''}
+                        {phone_badge}
                     </div>
                     <div style="display:flex;gap:6px;">
                         <a href="{e['href']}" style="text-decoration:none;flex:1;">
                             <div style="background:linear-gradient(135deg,{e['color']},{e['color']}CC);color:#fff;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">
-                                {'📞 Llamar' if e['href'].startswith('tel:') else '🌐 Web'}
+                                {call_icon}
                             </div>
                         </a>
-                        <a href="https://www.google.com/maps/search/?api=1&query={e['dir'].replace(' ', '+').replace('#', '%23')}" target="_blank" style="text-decoration:none;flex:1;">
+                        <a href="https://www.google.com/maps/search/?api=1&query={maps_q}" target="_blank" style="text-decoration:none;flex:1;">
                             <div style="background:#EFF6FF;color:#1D4ED8;border:1.5px solid #BFDBFE;border-radius:10px;
                                 padding:8px;text-align:center;font-size:11px;font-weight:800;">🗺️ Maps</div>
                         </a>
                     </div>
-                </div>""", unsafe_allow_html=True)
+                </div>"""
+                st.markdown(html_card, unsafe_allow_html=True)
                 btn_label = "✓ Ver menos" if is_sel else "ℹ️ Ver detalles"
                 if st.button(btn_label, key=f"ent_{i}_{e['nom'][:12]}", use_container_width=True,
                              type="primary" if is_sel else "secondary"):
