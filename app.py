@@ -12,6 +12,7 @@ from groq import Groq
 import plotly.graph_objects as go
 from streamlit_js_eval import get_geolocation
 import requests
+import numpy as np
 
 # ─── CARGAR MODELOS PKL ───────────────────────────────────────────────────────
 
