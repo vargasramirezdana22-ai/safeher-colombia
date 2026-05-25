@@ -1131,226 +1131,46 @@ elif "🗺️" in page:
     import folium
     import streamlit.components.v1 as components
 
-    # ── CSS premium para el mapa ────────────────────────────────────────────────
     st.markdown("""
-    <style>
-    @keyframes glowPulse {
-        0%,100%{box-shadow:0 0 14px 2px rgba(220,38,38,0.45),0 0 28px 6px rgba(220,38,38,0.18);}
-        50%{box-shadow:0 0 22px 6px rgba(220,38,38,0.65),0 0 40px 14px rgba(220,38,38,0.28);}
-    }
-    @keyframes glowPulseOrange {
-        0%,100%{box-shadow:0 0 10px 2px rgba(239,68,68,0.35),0 0 20px 5px rgba(239,68,68,0.15);}
-        50%{box-shadow:0 0 18px 5px rgba(239,68,68,0.55),0 0 32px 10px rgba(239,68,68,0.22);}
-    }
-    @keyframes fadeSlideUp {
-        from{opacity:0;transform:translateY(14px);}
-        to{opacity:1;transform:translateY(0);}
-    }
-    @keyframes fadeSlideIn {
-        from{opacity:0;transform:translateX(18px);}
-        to{opacity:1;transform:translateX(0);}
-    }
-    @keyframes barGrow {
-        from{width:0%;}
-    }
-    @keyframes sparkle {
-        0%,100%{opacity:0.6;transform:scale(1);}
-        50%{opacity:1;transform:scale(1.25);}
-    }
-    @keyframes iaTyping {
-        0%,60%,100%{opacity:0.35;} 30%{opacity:1;}
-    }
-
-    .map-topbar {
-        display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-        background:rgba(255,255,255,0.92);
-        backdrop-filter:blur(14px);
-        border:1.5px solid #E0D9FF;
-        border-radius:18px;
-        padding:12px 18px;
-        margin-bottom:18px;
-        box-shadow:0 4px 24px rgba(109,40,217,0.10);
-        animation:fadeSlideUp 0.35s ease both;
-    }
-    .map-topbar-sep {
-        width:1px;height:28px;background:#EDE9FE;flex-shrink:0;
-    }
-
-    .kpi-card-map {
-        border-radius:20px;padding:18px 16px;text-align:center;
-        animation:fadeSlideUp 0.4s ease both;
-        transition:transform 0.18s,box-shadow 0.18s;
-        cursor:default;
-    }
-    .kpi-card-map:hover {
-        transform:translateY(-3px);
-        box-shadow:0 10px 30px rgba(109,40,217,0.14)!important;
-    }
-
-    .map-wrapper {
-        border-radius:22px;overflow:hidden;
-        border:1.5px solid #DDD6FE;
-        box-shadow:0 8px 40px rgba(109,40,217,0.13),0 2px 8px rgba(0,0,0,0.07);
-        position:relative;
-        animation:fadeSlideUp 0.45s ease both;
-        transition:box-shadow 0.2s;
-    }
-    .map-wrapper:hover {
-        box-shadow:0 14px 52px rgba(109,40,217,0.18),0 4px 12px rgba(0,0,0,0.10);
-    }
-
-    .map-legend-bar {
-        display:flex;gap:12px;flex-wrap:wrap;justify-content:center;
-        margin:10px 0 2px;padding:9px 14px;
-        background:rgba(248,250,255,0.95);
-        backdrop-filter:blur(8px);
-        border-radius:14px;border:1px solid #EDE9FE;
-        box-shadow:0 2px 10px rgba(109,40,217,0.06);
-    }
-
-    .side-panel {
-        background:#FFFFFF;border-radius:22px;border:1.5px solid #EDE9FE;
-        box-shadow:0 8px 32px rgba(109,40,217,0.10);
-        padding:20px;
-        animation:fadeSlideIn 0.4s ease both;
-        position:relative;overflow:hidden;
-    }
-    .side-panel::before {
-        content:'';position:absolute;top:0;left:0;right:0;height:4px;
-        background:linear-gradient(90deg,#7C3AED,#EF4444,#F59E0B);
-        border-radius:22px 22px 0 0;
-    }
-
-    .critical-glow {
-        animation:glowPulse 2.4s ease-in-out infinite;
-        border-radius:16px;
-    }
-    .high-glow {
-        animation:glowPulseOrange 2.8s ease-in-out infinite;
-        border-radius:16px;
-    }
-
-    .ia-badge {
-        display:inline-flex;align-items:center;gap:6px;
-        background:linear-gradient(135deg,#1E1B4B,#3B1FA8);
-        color:#A78BFA;border-radius:20px;padding:4px 12px;
-        font-size:10px;font-weight:800;letter-spacing:0.4px;
-        box-shadow:0 2px 12px rgba(124,58,237,0.3);
-    }
-    .ia-dot {
-        width:6px;height:6px;border-radius:50%;background:#A78BFA;
-        animation:iaTyping 1.2s ease infinite;
-    }
-    .ia-dot:nth-child(2){animation-delay:0.2s;}
-    .ia-dot:nth-child(3){animation-delay:0.4s;}
-
-    .info-card-bottom {
-        border-radius:20px;padding:18px;
-        border:1.5px solid transparent;
-        background:#fff;
-        transition:transform 0.18s,box-shadow 0.18s,border-color 0.18s;
-        animation:fadeSlideUp 0.5s ease both;
-        cursor:default;
-        position:relative;overflow:hidden;
-    }
-    .info-card-bottom:hover {
-        transform:translateY(-3px);
-        box-shadow:0 10px 32px rgba(109,40,217,0.13);
-    }
-
-    .mini-bar-track {
-        height:5px;background:#F3F4F6;border-radius:99px;margin-top:7px;overflow:hidden;
-    }
-    .mini-bar-fill {
-        height:100%;border-radius:99px;animation:barGrow 1.1s ease both;
-    }
-
-    .sparkle-icon {
-        display:inline-block;animation:sparkle 2s ease-in-out infinite;
-    }
-
-    .prediction-banner {
-        background:linear-gradient(135deg,#FEF2F2,#FFF7ED);
-        border:1.5px solid #FECACA;border-radius:16px;padding:12px 16px;
-        margin-top:10px;animation:fadeSlideUp 0.6s ease both;
-    }
-    .trend-banner {
-        background:linear-gradient(135deg,#EFF6FF,#F0FDF4);
-        border:1.5px solid #BFDBFE;border-radius:16px;padding:12px 16px;
-        margin-top:8px;animation:fadeSlideUp 0.65s ease both;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # ── Header ─────────────────────────────────────────────────────────────────
-    st.markdown("""
-    <div style="margin-bottom:20px;animation:fadeSlideUp 0.3s ease both;">
-        <div style="display:inline-flex;align-items:center;gap:7px;background:linear-gradient(135deg,#EFF6FF,#EDE9FE);
+    <div style="margin-bottom:24px;">
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#EFF6FF;
             border:1px solid #BFDBFE;border-radius:24px;padding:5px 16px;font-size:11px;
-            color:#1D4ED8;font-weight:800;margin-bottom:10px;letter-spacing:0.3px;">
-            <span class="sparkle-icon">🗺️</span> MAPA INTERACTIVO PREMIUM
-        </div>
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
-            <h1 style="font-size:28px;font-weight:900;color:#1E1B4B;margin:0;letter-spacing:-0.5px;">
-                Mapa de Riesgo — Colombia
-            </h1>
-            <div class="ia-badge">
-                <span class="ia-dot"></span><span class="ia-dot"></span><span class="ia-dot"></span>
-                🤖 IA Activa
-            </div>
-        </div>
-        <p style="color:#6B7280;font-size:13px;margin:5px 0 0;">Visualización geográfica inteligente del nivel de riesgo por departamento y municipio.</p>
+            color:#1D4ED8;font-weight:700;margin-bottom:12px;">🗺️ MAPA INTERACTIVO</div>
+        <h1 style="font-size:30px;font-weight:900;color:#1E1B4B;margin:0 0 6px;letter-spacing:-0.5px;">Mapa de Riesgo — Colombia</h1>
+        <p style="color:#6B7280;font-size:14px;margin:0;">Visualización geográfica del nivel de riesgo por departamento y municipio.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── BARRA SUPERIOR (Filtros Premium) ───────────────────────────────────────
-    st.markdown('<div class="map-topbar">', unsafe_allow_html=True)
-    tb1, tb_sep1, tb2, tb_sep2, tb3, tb_sep3, tb4, tb_sep4, tb5 = st.columns(
-        [2.2, 0.05, 2, 0.05, 2, 0.05, 2, 0.05, 1.4])
+    # KPI cards
+    c1, c2, c3, c4 = st.columns(4)
+    for col, label, count, color, bg in [
+        (c1, "Crítico / Muy Alto", sum(1 for d in CRIME_DATA.values() if d["score"] >= 4.0), "#DC2626", "linear-gradient(135deg,#FEF2F2,#FEE2E2)"),
+        (c2, "Riesgo Alto",        sum(1 for d in CRIME_DATA.values() if 3.5 <= d["score"] < 4.0), "#EF4444", "linear-gradient(135deg,#FFF7ED,#FFEDD5)"),
+        (c3, "Riesgo Medio",       sum(1 for d in CRIME_DATA.values() if 3.0 <= d["score"] < 3.5), "#F59E0B", "linear-gradient(135deg,#FFFBEB,#FEF3C7)"),
+        (c4, "Controlado",         sum(1 for d in CRIME_DATA.values() if d["score"] < 3.0), "#059669", "linear-gradient(135deg,#ECFDF5,#D1FAE5)"),
+    ]:
+        with col:
+            st.markdown(f"""<div style="background:{bg};border-radius:18px;padding:16px 18px;
+                border:1px solid {color}25;text-align:center;margin-bottom:14px;">
+                <div style="font-size:30px;font-weight:900;color:{color};font-family:Georgia,serif;line-height:1;">{count}</div>
+                <div style="font-size:10px;color:{color};font-weight:700;margin-top:5px;">Departamentos</div>
+                <div style="font-size:10px;color:#6B7280;margin-top:3px;">{label}</div>
+            </div>""", unsafe_allow_html=True)
 
-    with tb1:
-        CIUDADES_PRINCIPALES = ["Todas las ciudades","Bogotá D.C.","Medellín (Antioquia)",
-            "Cali (Valle del Cauca)","Barranquilla (Atlántico)","Bucaramanga (Santander)",
-            "Cartagena (Bolívar)","Cúcuta (Norte de Santander)","Pereira (Risaralda)",
-            "Manizales (Caldas)","Pasto (Nariño)","Villavicencio (Meta)"]
-        ciudad_sel = st.selectbox("🏙️ Ciudad / Región", CIUDADES_PRINCIPALES, key="map_ciudad_sel",
-            label_visibility="collapsed")
-    with tb_sep1:
-        st.markdown('<div style="height:38px;"></div>', unsafe_allow_html=True)
-    with tb2:
-        HORARIOS = ["⏰ Todos los horarios","🌙 Madrugada (0–6h)","☀️ Mañana (6–12h)",
-                    "🌤️ Tarde (12–18h)","🌆 Noche (18–24h)"]
-        horario_sel = st.selectbox("⏰ Horario", HORARIOS, key="map_horario_sel",
-            label_visibility="collapsed")
-    with tb_sep2:
-        st.markdown('<div style="height:38px;"></div>', unsafe_allow_html=True)
-    with tb3:
-        barrio_busq = st.text_input("🔍 Buscar barrio / municipio...", key="map_barrio_busq",
-            label_visibility="collapsed", placeholder="🔍 Buscar barrio / municipio...")
-    with tb_sep3:
-        st.markdown('<div style="height:38px;"></div>', unsafe_allow_html=True)
-    with tb4:
-        filter_zone = st.selectbox("🎚️ Filtro de riesgo", ["TODOS","ALTO","MEDIO-ALTO","MEDIO-BAJO","BAJO"],
-            key="map_filter", label_visibility="collapsed")
-    with tb_sep4:
-        st.markdown('<div style="height:38px;"></div>', unsafe_allow_html=True)
-    with tb5:
-        map_view = st.radio("Vista", ["Dpto", "Municipio"], horizontal=True, key="map_view_mode")
-
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    # Selector de departamento si vista municipio
-    if map_view == "Municipio":
-        dep_col, _ = st.columns([3, 5])
-        with dep_col:
-            default_dep_idx = DEPARTAMENTOS.index(st.session_state.get("selected_dep","ANTIOQUIA")) \
+    # Controles
+    ctrl1, ctrl2, ctrl3 = st.columns([2, 2, 2])
+    with ctrl1:
+        filter_zone = st.selectbox("🔍 Filtrar por nivel de riesgo:", ["TODOS","ALTO","MEDIO-ALTO","MEDIO-BAJO","BAJO"], key="map_filter")
+    with ctrl2:
+        map_view = st.radio("🗺️ Vista:", ["Por Departamento", "Por Municipio"], horizontal=True, key="map_view_mode")
+    with ctrl3:
+        if map_view == "Por Municipio":
+            default_dep_idx = DEPARTAMENTOS.index(st.session_state.get("selected_dep", "ANTIOQUIA")) \
                 if st.session_state.get("selected_dep") in DEPARTAMENTOS else 1
-            dep_muni_sel = st.selectbox("📍 Selecciona departamento:", DEPARTAMENTOS,
-                index=default_dep_idx, key="dep_muni_sel")
-    else:
-        dep_muni_sel = None
+            dep_muni_sel = st.selectbox("📍 Departamento:", DEPARTAMENTOS, index=default_dep_idx, key="dep_muni_sel")
+        else:
+            dep_muni_sel = None
 
-    # ── Helpers ────────────────────────────────────────────────────────────────
     def get_risk_zone_label(score):
         if score >= 4.0: return "ALTO"
         if score >= 3.5: return "MEDIO-ALTO"
@@ -1363,152 +1183,30 @@ elif "🗺️" in page:
         key=lambda x: x["score"], reverse=True
     )
 
-    # ── KPI Cards ──────────────────────────────────────────────────────────────
-    c1, c2, c3, c4, c5 = st.columns(5)
-    kpi_data = [
-        (c1, "🔴 Crítico / Muy Alto", sum(1 for d in CRIME_DATA.values() if d["score"]>=4.0),
-         "#DC2626", "linear-gradient(135deg,#FEF2F2,#FEE2E2)", "Riesgo actual",
-         [4.5,4.2,4.6,4.3,4.5,4.4], True),
-        (c2, "🟠 Riesgo Alto", sum(1 for d in CRIME_DATA.values() if 3.5<=d["score"]<4.0),
-         "#EF4444", "linear-gradient(135deg,#FFF7ED,#FFEDD5)", "Alertas activas",
-         [3.5,3.7,3.6,3.8,3.7,3.9], True),
-        (c3, "🟡 Riesgo Medio", sum(1 for d in CRIME_DATA.values() if 3.0<=d["score"]<3.5),
-         "#F59E0B", "linear-gradient(135deg,#FFFBEB,#FEF3C7)", "Zonas críticas",
-         [3.1,3.0,3.2,3.3,3.1,3.2], False),
-        (c4, "🟢 Controlado", sum(1 for d in CRIME_DATA.values() if d["score"]<3.0),
-         "#059669", "linear-gradient(135deg,#ECFDF5,#D1FAE5)", "Denuncias hoy",
-         [2.8,2.6,2.5,2.7,2.6,2.4], False),
-        (c5, "📈 Tendencia", "↑", "#7C3AED","linear-gradient(135deg,#F5F3FF,#EDE9FE)",
-         "Tendencia general", [3.0,3.1,3.2,3.3,3.2,3.4], False),
-    ]
+    st.markdown(f'<div style="font-size:12px;color:#6B7280;margin-bottom:16px;">Mostrando <strong style="color:#1E1B4B;">{len(sorted_deps)}</strong> departamentos</div>', unsafe_allow_html=True)
 
-    for col, label, count, color, bg, sublabel, sparkline_vals, is_critical in kpi_data:
-        with col:
-            glow_class = "critical-glow" if is_critical else ""
-            # mini sparkline svg
-            w, h = 80, 28
-            pts = sparkline_vals
-            mn, mx = min(pts), max(pts)
-            rng = mx - mn if mx != mn else 1
-            coords_svg = " ".join([
-                f"{int(i*(w/(len(pts)-1)))},{int(h - (p-mn)/rng*(h-4)-2)}"
-                for i, p in enumerate(pts)
-            ])
-            sparkline_svg = f"""<svg width="{w}" height="{h}" style="display:block;margin:6px auto 0;">
-                <polyline points="{coords_svg}" fill="none" stroke="{color}" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
-                <circle cx="{int((len(pts)-1)*(w/(len(pts)-1)))}"
-                    cy="{int(h - (pts[-1]-mn)/rng*(h-4)-2)}"
-                    r="3" fill="{color}"/>
-            </svg>"""
-
-            st.markdown(f"""<div class="kpi-card-map {glow_class}" style="background:{bg};
-                border:1.5px solid {color}25;box-shadow:0 3px 16px {color}18;">
-                <div style="font-size:9px;color:{color};font-weight:800;margin-bottom:6px;
-                    text-transform:uppercase;letter-spacing:0.6px;">{sublabel}</div>
-                <div style="font-size:32px;font-weight:900;color:{color};font-family:Georgia,serif;
-                    line-height:1;letter-spacing:-1px;">{count}</div>
-                <div style="font-size:9px;color:#6B7280;margin-top:4px;font-weight:600;">{label}</div>
-                {sparkline_svg}
-            </div>""", unsafe_allow_html=True)
-
-    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
-
-    # ── Layout principal ────────────────────────────────────────────────────────
     col_map, col_detail = st.columns([2, 1])
 
-    # ── Función leyenda premium ─────────────────────────────────────────────────
-    def _add_legend_premium(m):
+    # ── Función leyenda ────────────────────────────────────────────────────────
+    def _add_legend(m):
         legend_html = """
-        <div style="position:fixed;bottom:20px;left:20px;z-index:1000;
-            background:rgba(255,255,255,0.96);backdrop-filter:blur(12px);
-            border-radius:16px;padding:14px 18px;
-            box-shadow:0 4px 24px rgba(0,0,0,0.14),0 1px 4px rgba(0,0,0,0.08);
-            font-family:'Segoe UI',system-ui,sans-serif;
-            border:1px solid rgba(237,233,254,0.8);min-width:148px;">
-            <div style="font-weight:900;font-size:11px;color:#1E1B4B;margin-bottom:10px;
-                letter-spacing:0.3px;display:flex;align-items:center;gap:5px;">
-                🛡️ Nivel de Riesgo
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                <div style="width:13px;height:13px;border-radius:4px;background:#7F1D1D;
-                    box-shadow:0 0 8px 2px rgba(127,29,29,0.4);"></div>
-                <span style="font-size:11px;color:#374151;font-weight:600;">≥4.5 Crítico</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                <div style="width:13px;height:13px;border-radius:4px;background:#DC2626;
-                    box-shadow:0 0 6px 1px rgba(220,38,38,0.35);"></div>
-                <span style="font-size:11px;color:#374151;font-weight:600;">≥4.0 Alto</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                <div style="width:13px;height:13px;border-radius:4px;background:#EF4444;"></div>
-                <span style="font-size:11px;color:#374151;font-weight:600;">≥3.5 Medio-Alto</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                <div style="width:13px;height:13px;border-radius:4px;background:#F59E0B;"></div>
-                <span style="font-size:11px;color:#374151;font-weight:600;">≥3.0 Medio</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                <div style="width:13px;height:13px;border-radius:4px;background:#3B82F6;"></div>
-                <span style="font-size:11px;color:#374151;font-weight:600;">≥2.5 Bajo</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-                <div style="width:13px;height:13px;border-radius:4px;background:#10B981;"></div>
-                <span style="font-size:11px;color:#374151;font-weight:600;">&lt;2.5 Mínimo</span>
-            </div>
+        <div style="position:fixed;bottom:20px;left:20px;z-index:1000;background:white;
+            border-radius:12px;padding:12px 16px;box-shadow:0 2px 16px rgba(0,0,0,0.15);
+            font-family:'Segoe UI',sans-serif;border:1px solid #eee;">
+            <div style="font-weight:800;font-size:12px;color:#1E1B4B;margin-bottom:8px;">🛡️ Nivel de Riesgo</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:14px;height:14px;border-radius:3px;background:#7F1D1D;"></div><span style="font-size:11px;color:#374151;">≥4.5 Crítico</span></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:14px;height:14px;border-radius:3px;background:#DC2626;"></div><span style="font-size:11px;color:#374151;">≥4.0 Alto</span></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:14px;height:14px;border-radius:3px;background:#EF4444;"></div><span style="font-size:11px;color:#374151;">≥3.5 Medio-Alto</span></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:14px;height:14px;border-radius:3px;background:#F59E0B;"></div><span style="font-size:11px;color:#374151;">≥3.0 Medio</span></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;"><div style="width:14px;height:14px;border-radius:3px;background:#3B82F6;"></div><span style="font-size:11px;color:#374151;">≥2.5 Bajo</span></div>
+            <div style="display:flex;align-items:center;gap:8px;"><div style="width:14px;height:14px;border-radius:3px;background:#10B981;"></div><span style="font-size:11px;color:#374151;">&lt;2.5 Mínimo</span></div>
         </div>"""
         m.get_root().html.add_child(folium.Element(legend_html))
 
-    # ── CSS inyectado en el mapa Folium ─────────────────────────────────────────
-    def _inject_map_styles(m):
-        style_html = """
-        <style>
-        .leaflet-container {
-            font-family: 'Segoe UI', system-ui, sans-serif !important;
-            border-radius: 22px !important;
-        }
-        .leaflet-popup-content-wrapper {
-            border-radius: 18px !important;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.10) !important;
-            border: 1.5px solid #EDE9FE !important;
-            padding: 0 !important;
-            overflow: hidden !important;
-        }
-        .leaflet-popup-tip-container { display: none !important; }
-        .leaflet-tooltip {
-            border-radius: 14px !important;
-            box-shadow: 0 6px 24px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.08) !important;
-            border: 1.5px solid #EDE9FE !important;
-            padding: 0 !important;
-            background: rgba(255,255,255,0.98) !important;
-            backdrop-filter: blur(10px) !important;
-        }
-        .leaflet-tooltip::before { display: none !important; }
-        .leaflet-zoom-animated { transition: transform 0.28s cubic-bezier(0.4,0,0.2,1) !important; }
-        .leaflet-control-zoom a {
-            border-radius: 10px !important;
-            border: 1.5px solid #EDE9FE !important;
-            background: rgba(255,255,255,0.95) !important;
-            box-shadow: 0 2px 8px rgba(109,40,217,0.10) !important;
-            color: #5B21B6 !important;
-            font-weight: 800 !important;
-        }
-        .leaflet-control-zoom a:hover {
-            background: #EDE9FE !important;
-            color: #3B1FA8 !important;
-        }
-        .leaflet-control-zoom { border-radius: 12px !important; border: none !important; overflow: hidden !important; }
-        </style>
-        """
-        m.get_root().html.add_child(folium.Element(style_html))
-
-    # ── Mapa por departamentos premium ─────────────────────────────────────────
+    # ── Mapa por departamentos ─────────────────────────────────────────────────
     @st.cache_data
     def build_folium_map_dep(filter_z, sel_dep):
-        m = folium.Map(location=[4.5, -74.0], zoom_start=5,
-            tiles="CartoDB positron", scrollWheelZoom=True,
-            zoom_control=True, prefer_canvas=True)
-
+        m = folium.Map(location=[4.5, -74.0], zoom_start=5, tiles="CartoDB positron", scrollWheelZoom=True)
         for feature in COLOMBIA_GEO["features"]:
             dep_name = feature["properties"]["DPTO"]
             dep_data = CRIME_DATA.get(dep_name)
@@ -1523,133 +1221,74 @@ elif "🗺️" in page:
             zona = dep_data["zona"]
             gravedad = dep_data["gravedad"]
             muns = dep_data["municipios"]
-
-            # Tooltip premium con animaciones
             tooltip_html = f"""
-            <div style="font-family:'Segoe UI',system-ui,sans-serif;min-width:220px;
-                padding:0;border-radius:14px;overflow:hidden;">
-                <div style="background:linear-gradient(135deg,{color},{color}CC);
-                    color:white;padding:12px 16px;border-radius:14px 14px 0 0;">
-                    <div style="font-weight:900;font-size:14px;margin-bottom:2px;">{dep_name}</div>
-                    <div style="font-size:10px;opacity:0.85;">Colombia · {muns} municipios</div>
+            <div style="font-family:'Segoe UI',sans-serif;min-width:200px;padding:2px;">
+                <div style="font-weight:800;font-size:14px;color:#1E1B4B;border-bottom:2px solid {color};padding-bottom:4px;margin-bottom:8px;">{dep_name}</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:22px;font-weight:900;color:{color};">{score:.1f}</span>
+                    <span style="font-size:11px;color:#6B7280;">/ 6.0</span>
+                    <span style="background:{color}22;color:{color};border-radius:20px;padding:2px 10px;font-size:10px;font-weight:700;">{zona}</span>
                 </div>
-                <div style="padding:12px 16px;background:rgba(255,255,255,0.99);">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
-                        <span style="font-size:26px;font-weight:900;color:{color};font-family:Georgia,serif;">{score:.1f}</span>
-                        <div>
-                            <span style="font-size:10px;color:#9CA3AF;">/ 6.0</span><br>
-                            <span style="background:{color}18;color:{color};border-radius:12px;
-                                padding:2px 10px;font-size:10px;font-weight:800;">{zona}</span>
-                        </div>
-                    </div>
-                    <div style="background:#F3F4F6;border-radius:6px;height:7px;margin-bottom:10px;overflow:hidden;">
-                        <div style="width:{pct}%;height:100%;background:linear-gradient(90deg,{color}88,{color});border-radius:6px;"></div>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:11px;">
-                        <span style="color:#374151;"><b>Gravedad:</b> {gravedad}</span>
-                    </div>
+                <div style="background:#eee;border-radius:4px;height:6px;margin-bottom:8px;">
+                    <div style="width:{pct}%;height:100%;background:{color};border-radius:4px;"></div>
                 </div>
+                <div style="font-size:11px;color:#374151;"><b>Gravedad:</b> {gravedad}</div>
+                <div style="font-size:11px;color:#374151;"><b>Municipios:</b> {muns}</div>
             </div>"""
-
-            # Popup premium con panel de información
             popup_html = f"""
-            <div style="font-family:'Segoe UI',system-ui,sans-serif;width:240px;border-radius:18px;overflow:hidden;">
-                <div style="background:linear-gradient(135deg,{color},{color}AA);
-                    color:white;padding:14px 16px;border-radius:18px 18px 0 0;">
-                    <div style="font-weight:900;font-size:15px;margin-bottom:2px;">{dep_name}</div>
-                    <div style="font-size:10px;opacity:0.85;">📍 Colombia · {muns} municipios</div>
-                </div>
-                <div style="padding:14px 16px;border:1px solid #EDE9FE;border-top:none;
-                    border-radius:0 0 18px 18px;background:#fff;">
-                    <div style="font-size:32px;font-weight:900;color:{color};margin-bottom:6px;
-                        font-family:Georgia,serif;line-height:1;">{score:.1f}
-                        <span style="font-size:13px;color:#9CA3AF;font-weight:400;">/6.0</span>
+            <div style="font-family:'Segoe UI',sans-serif;width:220px;">
+                <div style="background:{color};color:white;padding:10px 14px;border-radius:8px 8px 0 0;font-weight:800;font-size:14px;">{dep_name}</div>
+                <div style="padding:12px 14px;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;">
+                    <div style="font-size:28px;font-weight:900;color:{color};margin-bottom:4px;">{score:.1f} <span style="font-size:13px;color:#9CA3AF;">/ 6.0</span></div>
+                    <div style="background:#F3F4F6;border-radius:4px;height:8px;margin-bottom:10px;">
+                        <div style="width:{pct}%;height:100%;background:{color};border-radius:4px;"></div>
                     </div>
-                    <div style="background:#F3F4F6;border-radius:6px;height:8px;margin-bottom:12px;overflow:hidden;">
-                        <div style="width:{pct}%;height:100%;background:linear-gradient(90deg,{color}77,{color});border-radius:6px;"></div>
-                    </div>
-                    <div style="margin-bottom:6px;display:flex;justify-content:space-between;font-size:11px;">
-                        <span style="color:#6B7280;">Zona de riesgo</span>
-                        <span style="color:{color};font-weight:800;">{zona}</span>
-                    </div>
-                    <div style="margin-bottom:6px;display:flex;justify-content:space-between;font-size:11px;">
-                        <span style="color:#6B7280;">Gravedad</span>
-                        <span style="color:#374151;font-weight:700;">{gravedad}</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;font-size:11px;">
-                        <span style="color:#6B7280;">Municipios</span>
-                        <span style="color:#374151;font-weight:700;">{muns}</span>
-                    </div>
-                    <div style="margin-top:10px;padding:8px 10px;background:{color}0d;
-                        border-radius:10px;border:1px solid {color}22;font-size:10px;
-                        color:{color};font-weight:700;">
-                        🤖 IA: {'Zona crítica — acción urgente' if score>=4.0 else 'Monitoreo activo recomendado' if score>=3.0 else 'Riesgo controlado'}
-                    </div>
+                    <div style="font-size:12px;margin-bottom:4px;"><b style="color:#374151;">Zona:</b> <span style="color:{color};font-weight:700;">{zona}</span></div>
+                    <div style="font-size:12px;margin-bottom:4px;"><b style="color:#374151;">Gravedad:</b> {gravedad}</div>
+                    <div style="font-size:12px;"><b style="color:#374151;">Municipios:</b> {muns}</div>
                 </div>
             </div>"""
-
-            weight = 3.5 if is_sel else 1.5
-            fill_op = 0.90 if is_sel else 0.75
+            weight = 3 if is_sel else 1.5
+            fill_op = 0.88 if is_sel else 0.72
             stroke_color = "#1E1B4B" if is_sel else "#ffffff"
-
             folium.GeoJson(feature,
                 style_function=lambda x, c=color, w=weight, fo=fill_op, sc=stroke_color: {
-                    "fillColor": c, "color": sc, "weight": w, "fillOpacity": fo,
-                    "dashArray": ""},
+                    "fillColor": c, "color": sc, "weight": w, "fillOpacity": fo},
                 tooltip=folium.Tooltip(tooltip_html, sticky=True),
-                popup=folium.Popup(popup_html, max_width=260),
-                highlight_function=lambda x, c=color: {
-                    "fillColor": c, "fillOpacity": 0.97, "weight": 4,
-                    "color": "#1E1B4B"},
+                popup=folium.Popup(popup_html, max_width=240),
+                highlight_function=lambda x, c=color: {"fillColor": c, "fillOpacity": 0.95, "weight": 3, "color": "#1E1B4B"},
             ).add_to(m)
-
-            try:
-                coords = feature["geometry"]["coordinates"][0]
-                lons = [p[0] for p in coords]
-                lats = [p[1] for p in coords]
-                cx = sum(lons)/len(lons)
-                cy = sum(lats)/len(lats)
-                short_name = dep_name.split()[0][:8] if len(dep_name)>12 else dep_name[:10]
-                glow_style = f"text-shadow:0 0 8px {color},0 0 16px {color}88;" if score>=4.0 else ""
-                folium.Marker(location=[cy, cx],
-                    icon=folium.DivIcon(
-                        html=f'<div style="font-size:7.5px;font-weight:900;color:white;'
-                             f'text-shadow:0 1px 4px rgba(0,0,0,0.8),0 0 8px rgba(0,0,0,0.5);'
-                             f'{glow_style}'
-                             f'white-space:nowrap;text-align:center;line-height:1.3;'
-                             f'pointer-events:none;">'
-                             f'<div>{short_name}</div>'
-                             f'<div style="font-size:8.5px;">{score:.1f}</div></div>',
-                        icon_size=(72, 30), icon_anchor=(36, 15)),
-                ).add_to(m)
-            except Exception:
-                pass
-
-        _inject_map_styles(m)
-        _add_legend_premium(m)
+            coords = feature["geometry"]["coordinates"][0]
+            lons = [p[0] for p in coords]; lats = [p[1] for p in coords]
+            cx = sum(lons)/len(lons); cy = sum(lats)/len(lats)
+            short_name = dep_name.split()[0][:8] if len(dep_name) > 12 else dep_name[:10]
+            folium.Marker(location=[cy, cx],
+                icon=folium.DivIcon(
+                    html=f'<div style="font-size:8px;font-weight:800;color:white;text-shadow:0 1px 3px rgba(0,0,0,0.7);white-space:nowrap;text-align:center;line-height:1.2;"><div>{short_name}</div><div style="font-size:9px;">{score:.1f}</div></div>',
+                    icon_size=(70, 28), icon_anchor=(35, 14)),
+            ).add_to(m)
+        _add_legend(m)
         return m._repr_html_()
 
-    # ── Mapa por municipios premium ─────────────────────────────────────────────
+    # ── Mapa por municipios ────────────────────────────────────────────────────
     @st.cache_data
     def build_folium_map_mun(dep_name_sel, mun_data_json):
         mun_data = json.loads(mun_data_json)
         dep_info = CRIME_DATA.get(dep_name_sel, {})
-        dep_feature = next((f for f in COLOMBIA_GEO["features"] if f["properties"]["DPTO"]==dep_name_sel), None)
+        dep_feature = next((f for f in COLOMBIA_GEO["features"] if f["properties"]["DPTO"] == dep_name_sel), None)
         if dep_feature:
             coords = dep_feature["geometry"]["coordinates"][0]
-            center_lat = sum(p[1] for p in coords)/len(coords)
-            center_lon = sum(p[0] for p in coords)/len(coords)
+            center_lat = sum(p[1] for p in coords) / len(coords)
+            center_lon = sum(p[0] for p in coords) / len(coords)
         else:
             center_lat, center_lon = 4.5, -74.0
 
-        m = folium.Map(location=[center_lat, center_lon], zoom_start=8,
-            tiles="CartoDB positron", scrollWheelZoom=True, prefer_canvas=True)
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=8, tiles="CartoDB positron", scrollWheelZoom=True)
 
         if dep_feature:
             folium.GeoJson(dep_feature,
-                style_function=lambda x, c=get_risk_color(dep_info.get("score",3.0)): {
-                    "fillColor": c, "color": "#1E1B4B", "weight": 2.5, "fillOpacity": 0.07,
-                    "dashArray": ""},
+                style_function=lambda x, c=get_risk_color(dep_info.get("score", 3.0)): {
+                    "fillColor": c, "color": "#1E1B4B", "weight": 2, "fillOpacity": 0.08},
             ).add_to(m)
 
         for mun in mun_data:
@@ -1657,152 +1296,123 @@ elif "🗺️" in page:
             score = mun["score"]
             zona = mun["zona"]
             color = get_risk_color(score)
-            pct = int(score/6*100)
+            pct = int(score / 6 * 100)
 
             if mun_name in MUN_COORDS:
                 lat, lon = MUN_COORDS[mun_name]
             else:
                 seed = int(hashlib.md5(f"{dep_name_sel}{mun_name}".encode()).hexdigest(), 16)
-                lat_off = ((seed%1000)/1000.0-0.5)*1.5
-                lon_off = (((seed//1000)%1000)/1000.0-0.5)*1.5
-                lat = center_lat+lat_off
-                lon = center_lon+lon_off
+                lat_off = ((seed % 1000) / 1000.0 - 0.5) * 1.5
+                lon_off = (((seed // 1000) % 1000) / 1000.0 - 0.5) * 1.5
+                lat = center_lat + lat_off
+                lon = center_lon + lon_off
 
             tooltip_html = f"""
-            <div style="font-family:'Segoe UI',system-ui,sans-serif;min-width:190px;
-                padding:0;border-radius:14px;overflow:hidden;">
-                <div style="background:linear-gradient(135deg,{color},{color}AA);
-                    color:white;padding:10px 14px;">
-                    <div style="font-weight:900;font-size:13px;">📍 {mun_name}</div>
-                    <div style="font-size:10px;opacity:0.85;">{dep_name_sel}</div>
+            <div style="font-family:'Segoe UI',sans-serif;min-width:180px;padding:2px;">
+                <div style="font-weight:800;font-size:13px;color:#1E1B4B;border-bottom:2px solid {color};padding-bottom:4px;margin-bottom:8px;">
+                    📍 {mun_name}
                 </div>
-                <div style="padding:10px 14px;background:rgba(255,255,255,0.99);">
-                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-                        <span style="font-size:22px;font-weight:900;color:{color};font-family:Georgia,serif;">{score:.1f}</span>
-                        <span style="font-size:10px;color:#9CA3AF;">/6.0</span>
-                        <span style="background:{color}18;color:{color};border-radius:10px;
-                            padding:2px 8px;font-size:9px;font-weight:800;">{zona}</span>
-                    </div>
-                    <div style="background:#F3F4F6;border-radius:5px;height:6px;overflow:hidden;">
-                        <div style="width:{pct}%;height:100%;background:linear-gradient(90deg,{color}77,{color});"></div>
-                    </div>
+                <div style="font-size:10px;color:#6B7280;margin-bottom:4px;">{dep_name_sel}</div>
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                    <span style="font-size:20px;font-weight:900;color:{color};">{score:.1f}</span>
+                    <span style="font-size:10px;color:#6B7280;">/ 6.0</span>
+                    <span style="background:{color}22;color:{color};border-radius:20px;padding:2px 8px;font-size:9px;font-weight:700;">{zona}</span>
+                </div>
+                <div style="background:#eee;border-radius:4px;height:5px;">
+                    <div style="width:{pct}%;height:100%;background:{color};border-radius:4px;"></div>
                 </div>
             </div>"""
 
             popup_html = f"""
-            <div style="font-family:'Segoe UI',system-ui,sans-serif;width:210px;border-radius:18px;overflow:hidden;">
-                <div style="background:linear-gradient(135deg,{color},{color}AA);
-                    color:white;padding:12px 14px;">
-                    <div style="font-weight:900;font-size:14px;">📍 {mun_name}</div>
-                    <div style="font-size:10px;opacity:0.85;">{dep_name_sel}</div>
+            <div style="font-family:'Segoe UI',sans-serif;width:200px;">
+                <div style="background:{color};color:white;padding:8px 12px;border-radius:8px 8px 0 0;font-weight:800;font-size:13px;">
+                    📍 {mun_name}
                 </div>
-                <div style="padding:12px 14px;border:1px solid #EDE9FE;border-top:none;
-                    border-radius:0 0 18px 18px;background:#fff;">
-                    <div style="font-size:28px;font-weight:900;color:{color};font-family:Georgia,serif;
-                        line-height:1;margin-bottom:6px;">{score:.1f}
-                        <span style="font-size:12px;color:#9CA3AF;font-weight:400;">/6.0</span>
+                <div style="padding:10px 12px;border:1px solid #eee;border-top:none;border-radius:0 0 8px 8px;">
+                    <div style="font-size:10px;color:#6B7280;margin-bottom:6px;">{dep_name_sel}</div>
+                    <div style="font-size:26px;font-weight:900;color:{color};margin-bottom:4px;">{score:.1f}
+                        <span style="font-size:12px;color:#9CA3AF;">/ 6.0</span>
                     </div>
-                    <div style="background:#F3F4F6;border-radius:6px;height:7px;margin-bottom:10px;overflow:hidden;">
-                        <div style="width:{pct}%;height:100%;background:linear-gradient(90deg,{color}77,{color});"></div>
+                    <div style="background:#F3F4F6;border-radius:4px;height:7px;margin-bottom:8px;">
+                        <div style="width:{pct}%;height:100%;background:{color};border-radius:4px;"></div>
                     </div>
-                    <div style="font-size:11px;font-weight:800;color:{color};margin-bottom:8px;">Zona: {zona}</div>
-                    <div style="padding:8px 10px;background:{color}0d;border-radius:10px;
-                        border:1px solid {color}22;font-size:10px;color:{color};font-weight:700;">
-                        🤖 IA: {'Acción urgente requerida' if score>=4.0 else 'Monitoreo recomendado' if score>=3.0 else 'Riesgo bajo — preventivo'}
-                    </div>
+                    <div style="font-size:11px;font-weight:700;color:{color};">Zona: {zona}</div>
                 </div>
             </div>"""
 
-            radius = 9+score*3.2
-            glow_color = f"rgba(220,38,38,0.5)" if score>=4.0 else f"rgba(239,68,68,0.3)" if score>=3.5 else "rgba(0,0,0,0.15)"
-
+            radius = 8 + score * 3
             folium.CircleMarker(
                 location=[lat, lon], radius=radius,
-                color="#1E1B4B", weight=2,
-                fill=True, fill_color=color, fill_opacity=0.87,
+                color="#1E1B4B", weight=1.5,
+                fill=True, fill_color=color, fill_opacity=0.85,
                 tooltip=folium.Tooltip(tooltip_html, sticky=True),
-                popup=folium.Popup(popup_html, max_width=230),
+                popup=folium.Popup(popup_html, max_width=220),
             ).add_to(m)
 
             folium.Marker(location=[lat, lon],
                 icon=folium.DivIcon(
                     html=f'<div style="font-size:7px;font-weight:800;color:#1E1B4B;'
-                         f'text-shadow:0 0 3px white,0 0 5px white,0 0 7px white;'
-                         f'white-space:nowrap;text-align:center;'
-                         f'margin-top:{int(radius)+7}px;pointer-events:none;">'
-                         f'{mun_name[:13]}</div>',
-                    icon_size=(92, 22), icon_anchor=(46, 0)),
+                         f'text-shadow:0 0 3px white,0 0 3px white;white-space:nowrap;'
+                         f'text-align:center;margin-top:{int(radius)+6}px;">'
+                         f'{mun_name[:12]}</div>',
+                    icon_size=(90, 20), icon_anchor=(45, 0)),
             ).add_to(m)
 
-        _inject_map_styles(m)
-        _add_legend_premium(m)
+        _add_legend(m)
         return m._repr_html_()
 
-    # ── Columna mapa ────────────────────────────────────────────────────────────
     with col_map:
-        view_label = f"Vista Municipal — {dep_muni_sel}" if map_view=="Municipio" else "Colombia — Por Departamento"
-        st.markdown(f"""<div style="font-size:11px;font-weight:800;color:#A78BFA;margin-bottom:10px;
-            text-transform:uppercase;letter-spacing:1.4px;">🇨🇴 {view_label}</div>""",
-            unsafe_allow_html=True)
+        view_label = f"Vista Municipal — {dep_muni_sel}" if map_view == "Por Municipio" else "Colombia — Por Departamento"
+        st.markdown(f'<div style="font-size:12px;font-weight:700;color:#A78BFA;margin-bottom:16px;text-transform:uppercase;letter-spacing:1.2px;">🇨🇴 {view_label}</div>', unsafe_allow_html=True)
 
-        st.markdown('<div class="map-wrapper">', unsafe_allow_html=True)
-        if map_view=="Municipio":
+        if map_view == "Por Municipio":
             mun_data_list = MUNICIPIO_DATA.get(dep_muni_sel, [])
             mun_data_json = json.dumps(mun_data_list)
             map_html = build_folium_map_mun(dep_muni_sel, mun_data_json)
-            components.html(map_html, height=548, scrolling=False)
+            components.html(map_html, height=540, scrolling=False)
+            st.markdown(f'<div style="font-size:11px;color:#6B7280;text-align:center;margin-top:4px;">🖱️ Zoom · Clic en círculo para detalles · Tamaño proporcional al score · Depto: <strong>{dep_muni_sel}</strong></div>', unsafe_allow_html=True)
         else:
-            sel_dep_map = st.session_state.get("selected_dep","")
+            sel_dep_map = st.session_state.get("selected_dep", "")
             map_html = build_folium_map_dep(filter_zone, sel_dep_map)
-            components.html(map_html, height=548, scrolling=False)
-        st.markdown('</div>', unsafe_allow_html=True)
+            components.html(map_html, height=540, scrolling=False)
+            st.markdown('<div style="font-size:11px;color:#6B7280;text-align:center;margin-top:4px;">🖱️ Zoom con scroll · Clic en departamento para detalles · Pasa cursor para info rápida</div>', unsafe_allow_html=True)
 
-        # Leyenda inferior
-        st.markdown("""<div class="map-legend-bar">
-            <span style="font-size:11px;color:#7F1D1D;font-weight:800;">● ≥4.5 Crítico</span>
-            <span style="font-size:11px;color:#DC2626;font-weight:800;">● ≥4.0 Alto</span>
-            <span style="font-size:11px;color:#EF4444;font-weight:700;">● ≥3.5 Med-Alto</span>
+        # Leyenda
+        st.markdown("""
+        <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:center;margin:10px 0 4px;padding:8px 12px;
+            background:#F8FAFF;border-radius:12px;border:1px solid #EDE9FE;">
+            <span style="font-size:11px;color:#7F1D1D;font-weight:700;">● ≥4.5 Crítico</span>
+            <span style="font-size:11px;color:#DC2626;font-weight:700;">● ≥4.0 Alto</span>
+            <span style="font-size:11px;color:#EF4444;font-weight:700;">● ≥3.5 Medio-Alto</span>
             <span style="font-size:11px;color:#F59E0B;font-weight:700;">● ≥3.0 Medio</span>
             <span style="font-size:11px;color:#3B82F6;font-weight:700;">● ≥2.5 Bajo</span>
             <span style="font-size:11px;color:#10B981;font-weight:700;">● &lt;2.5 Mínimo</span>
-        </div>""", unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown("""<div style="font-size:10px;color:#A78BFA;text-align:center;
-            margin-top:5px;font-weight:600;">
-            🖱️ Scroll para zoom · Clic en zona para panel de información · Hover para vista rápida
-        </div>""", unsafe_allow_html=True)
-
-        # Ranking / botones departamento
-        if map_view=="Municipio":
+        # Ranking / botones
+        if map_view == "Por Municipio":
             mun_data_list = MUNICIPIO_DATA.get(dep_muni_sel, [])
             mun_sorted = sorted(mun_data_list, key=lambda x: x["score"], reverse=True)
-            st.markdown(f'<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:16px 0 10px;'
-                        f'display:flex;align-items:center;gap:8px;">'
-                        f'📊 Ranking de Municipios — {dep_muni_sel}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin:18px 0 12px;">📊 Ranking de Municipios — {dep_muni_sel}</div>', unsafe_allow_html=True)
             max_mun_score = mun_sorted[0]["score"] if mun_sorted else 1
             for i, mun in enumerate(mun_sorted):
                 color = get_risk_color(mun["score"])
-                pct = mun["score"]/max_mun_score*100
-                num_color = "#DC2626" if i<3 else "#6B7280"
-                glow = "critical-glow" if mun["score"]>=4.5 else ""
-                st.markdown(f"""<div class="{glow}" style="margin-bottom:9px;padding:7px 10px;
-                    background:{'linear-gradient(135deg,#FEF2F2,#FEE2E2)' if mun['score']>=4.0 else '#FAFAFA'};
-                    border-radius:12px;border:1px solid {color}18;
-                    transition:transform 0.15s;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-                        <span style="font-size:10px;color:{num_color};font-weight:900;width:22px;">#{i+1}</span>
-                        <span style="font-size:12px;color:#1E1B4B;font-weight:700;flex:1;padding:0 8px;">{mun['name']}</span>
-                        <span style="font-size:12px;color:{color};font-weight:900;">{mun['score']:.1f}</span>
+                pct = mun["score"] / max_mun_score * 100
+                num_color = "#DC2626" if i < 3 else "#6B7280"
+                st.markdown(f"""<div style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <span style="font-size:10px;color:{num_color};font-weight:800;width:20px;">#{i+1}</span>
+                        <span style="font-size:12px;color:#1E1B4B;font-weight:600;flex:1;padding:0 8px;">{mun['name']}</span>
+                        <span style="font-size:12px;color:{color};font-weight:900;">{mun['score']:.1f}/6.0</span>
                         &nbsp;{risk_badge(mun['zona'], small=True)}
                     </div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill" style="width:{pct:.0f}%;
-                            background:linear-gradient(90deg,{color}77,{color});"></div>
+                    <div style="background:#EDE9FE;border-radius:8px;height:9px;overflow:hidden;">
+                        <div style="width:{pct:.0f}%;height:100%;background:linear-gradient(90deg,{color}80,{color});border-radius:8px;"></div>
                     </div>
                 </div>""", unsafe_allow_html=True)
         else:
-            st.markdown('<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:16px 0 10px;">📊 Seleccionar Departamento</div>',
-                unsafe_allow_html=True)
+            st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin:18px 0 12px;">📊 Seleccionar Departamento</div>', unsafe_allow_html=True)
             cols_per_row = 5
             rows = [sorted_deps[i:i+cols_per_row] for i in range(0, len(sorted_deps), cols_per_row)]
             for row in rows:
@@ -1810,146 +1420,84 @@ elif "🗺️" in page:
                 for j, dep_d in enumerate(row):
                     color = get_risk_color(dep_d["score"])
                     with rcols[j]:
-                        if st.button(f"{dep_d['name'][:10]}\n{dep_d['score']:.1f}",
-                                key=f"dep_{dep_d['name']}", use_container_width=True):
+                        if st.button(f"{dep_d['name'][:10]}\n{dep_d['score']:.1f}", key=f"dep_{dep_d['name']}", use_container_width=True):
                             st.session_state["selected_dep"] = dep_d["name"]
-                        st.markdown(f"""<div style="background:{color}14;border-radius:8px;
-                            padding:2px 4px;text-align:center;margin-top:-10px;margin-bottom:4px;">
-                            <div style="font-size:8px;color:{color};font-weight:800;">{dep_d['zona']}</div>
+                        st.markdown(f"""<div style="background:{color}14;border-radius:8px;padding:2px 4px;
+                            text-align:center;margin-top:-10px;margin-bottom:4px;">
+                            <div style="font-size:8px;color:{color};font-weight:700;">{dep_d['zona']}</div>
                         </div>""", unsafe_allow_html=True)
 
-            st.markdown('<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:16px 0 10px;">🏆 Top 12 por Score de Riesgo</div>',
-                unsafe_allow_html=True)
+            st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin:18px 0 12px;">🏆 Top 12 Departamentos por Score de Riesgo</div>', unsafe_allow_html=True)
             for i, d in enumerate(sorted_deps[:12]):
                 color = get_risk_color(d["score"])
-                pct = d["score"]/6*100
-                num_color = "#DC2626" if i<3 else "#6B7280"
-                glow = "critical-glow" if d["score"]>=4.5 else ""
-                st.markdown(f"""<div class="{glow}" style="margin-bottom:9px;padding:7px 10px;
-                    background:{'linear-gradient(135deg,#FEF2F2,#FEE2E2)' if d['score']>=4.0 else '#FAFAFA'};
-                    border-radius:12px;border:1px solid {color}18;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-                        <span style="font-size:10px;color:{num_color};font-weight:900;width:22px;">#{i+1}</span>
-                        <span style="font-size:12px;color:#1E1B4B;font-weight:700;flex:1;padding:0 8px;">{d['name']}</span>
+                pct = d["score"] / 6 * 100
+                num_color = "#DC2626" if i < 3 else "#6B7280"
+                st.markdown(f"""<div style="margin-bottom:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                        <span style="font-size:10px;color:{num_color};font-weight:800;width:20px;">#{i+1}</span>
+                        <span style="font-size:12px;color:#1E1B4B;font-weight:600;flex:1;padding:0 8px;">{d['name']}</span>
                         <span style="font-size:12px;color:{color};font-weight:900;">{d['score']:.1f}/6.0</span>
                         &nbsp;{risk_badge(d['zona'], small=True)}
                     </div>
-                    <div class="mini-bar-track">
-                        <div class="mini-bar-fill" style="width:{pct:.0f}%;
-                            background:linear-gradient(90deg,{color}77,{color});"></div>
+                    <div style="background:#EDE9FE;border-radius:8px;height:9px;overflow:hidden;">
+                        <div style="width:{pct:.0f}%;height:100%;background:linear-gradient(90deg,{color}80,{color});border-radius:8px;"></div>
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-    # ── Columna panel lateral de zona seleccionada ──────────────────────────────
     with col_detail:
-        if map_view=="Municipio":
+        if map_view == "Por Municipio":
             mun_data_list = MUNICIPIO_DATA.get(dep_muni_sel, [])
             mun_sorted_d = sorted(mun_data_list, key=lambda x: x["score"], reverse=True)
             dep_info = CRIME_DATA.get(dep_muni_sel, {})
-            dep_color = get_risk_color(dep_info.get("score",3.0))
+            dep_color = get_risk_color(dep_info.get("score", 3.0))
 
-            st.markdown(f"""<div class="side-panel">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
-                    <div>
-                        <div style="font-size:18px;font-weight:900;color:#1E1B4B;">{dep_muni_sel}</div>
-                        <div style="font-size:11px;color:#A78BFA;margin-top:2px;">Vista Municipal · {len(mun_data_list)} municipios</div>
-                    </div>
-                    <div class="ia-badge">🤖 IA</div>
+            st.markdown(f"""<div class="sh-card">
+                <div style="margin-bottom:14px;">
+                    <div style="font-size:19px;font-weight:900;color:#1E1B4B;">{dep_muni_sel}</div>
+                    <div style="font-size:11px;color:#A78BFA;margin-top:2px;">Vista Municipal · {len(mun_data_list)} municipios analizados</div>
                 </div>
-                <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px;
+                <div style="display:flex;align-items:center;gap:16px;margin-bottom:14px;
                     background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:16px;padding:14px;">
                     <div style="text-align:center;">
-                        <div style="font-size:36px;font-weight:900;color:{dep_color};
-                            font-family:Georgia,serif;line-height:1;">{dep_info.get('score',3.0):.1f}</div>
-                        <div style="font-size:10px;color:#A78BFA;font-weight:700;">/ 6.0</div>
+                        <div style="font-size:36px;font-weight:900;color:{dep_color};font-family:Georgia,serif;line-height:1;">{dep_info.get('score',3.0):.1f}</div>
+                        <div style="font-size:10px;color:#A78BFA;font-weight:600;">Depto / 6.0</div>
                     </div>
                     <div>
-                        <div style="font-size:11px;color:#6B7280;margin-bottom:6px;">Nivel departamento:</div>
+                        <div style="font-size:12px;color:#6B7280;margin-bottom:6px;">Nivel departamento:</div>
                         <div style="margin-bottom:6px;">{risk_badge(dep_info.get('zona','MEDIO-BAJO'))}</div>
-                        <div style="font-size:10px;color:#6B7280;margin-top:6px;">Municipio más crítico:</div>
-                        <div style="font-size:13px;font-weight:800;color:{get_risk_color(mun_sorted_d[0]['score'])};">
-                            {mun_sorted_d[0]['name']} ({mun_sorted_d[0]['score']:.1f})
-                        </div>
+                        <div style="font-size:11px;color:#6B7280;margin-top:6px;">Municipio más crítico:</div>
+                        <div style="font-size:13px;font-weight:800;color:{get_risk_color(mun_sorted_d[0]['score'])};">{mun_sorted_d[0]['name']} ({mun_sorted_d[0]['score']:.1f})</div>
                     </div>
                 </div>
-            </div>""", unsafe_allow_html=True)
+                <div style="font-size:12px;font-weight:700;color:#1E1B4B;margin-bottom:10px;">🔴 Top 3 Municipios más críticos</div>
+            """, unsafe_allow_html=True)
 
-            # Predicción IA
-            pred_score = dep_info.get("score", 3.0)
-            st.markdown(f"""<div class="prediction-banner">
-                <div style="font-size:11px;font-weight:900;color:#991B1B;margin-bottom:5px;">
-                    ⚠️ Predicción IA · Próximas 24h
-                </div>
-                <div style="font-size:11px;color:#7F1D1D;line-height:1.6;">
-                    {'🔴 Alta probabilidad de aumento de incidentes en zonas urbanas.' if pred_score>=4.0
-                     else '🟡 Riesgo moderado con tendencia estable. Monitoreo activo.' if pred_score>=3.0
-                     else '🟢 Situación controlada. Sin alertas activas previstas.'}
-                </div>
-            </div>
-            <div class="trend-banner">
-                <div style="font-size:11px;font-weight:900;color:#1D4ED8;margin-bottom:5px;">
-                    📍 Zona con tendencia {'creciente ↑' if pred_score>=3.5 else 'estable →'}
-                </div>
-                <div style="font-size:11px;color:#1E40AF;line-height:1.6;">
-                    🤖 Interpretación IA: {'Patrón de incremento detectado. Refuerzo preventivo recomendado.' if pred_score>=3.5
-                     else 'Patrón estable. Mantener estrategias de prevención vigentes.'}
-                </div>
-            </div>""", unsafe_allow_html=True)
-
-            # Top 3 críticos
-            st.markdown('<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:14px 0 8px;">🔴 Top 3 Municipios más críticos</div>',
-                unsafe_allow_html=True)
             for mun in mun_sorted_d[:3]:
                 mcolor = get_risk_color(mun["score"])
                 st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;
-                    padding:9px 12px;background:{mcolor}0d;border-radius:12px;margin-bottom:7px;
-                    border:1.5px solid {mcolor}28;
-                    box-shadow:0 2px 10px {mcolor}14;">
-                    <span style="font-size:12px;color:#1E1B4B;font-weight:800;">📍 {mun['name']}</span>
+                    padding:8px 10px;background:{mcolor}0d;border-radius:10px;margin-bottom:6px;
+                    border:1px solid {mcolor}25;">
+                    <span style="font-size:12px;color:#1E1B4B;font-weight:700;">📍 {mun['name']}</span>
                     <div style="display:flex;align-items:center;gap:6px;">
-                        <span style="font-size:13px;font-weight:900;color:{mcolor};">{mun['score']:.1f}</span>
+                        <span style="font-size:12px;font-weight:900;color:{mcolor};">{mun['score']:.1f}</span>
                         {risk_badge(mun['zona'], small=True)}
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-            # Entidades cercanas
-            st.markdown("""<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:14px 0 8px;">
-                🏥 Entidades de apoyo cercanas</div>""", unsafe_allow_html=True)
-            for icon, nom, tipo, color_e in [
-                ("🚔","Policía Nacional","Seguridad 24/7","#1D4ED8"),
-                ("🏥","Hospital / Clínica","Atención médica","#059669"),
-                ("⚖️","Comisaría de Familia","Apoyo familiar","#7C3AED"),
-            ]:
-                st.markdown(f"""<div style="display:flex;align-items:center;gap:10px;
-                    padding:8px 12px;background:{color_e}08;border-radius:12px;margin-bottom:6px;
-                    border:1px solid {color_e}18;">
-                    <span style="font-size:18px;">{icon}</span>
-                    <div>
-                        <div style="font-size:11px;font-weight:800;color:#1E1B4B;">{nom}</div>
-                        <div style="font-size:10px;color:#6B7280;">{tipo}</div>
-                    </div>
-                    <div style="margin-left:auto;font-size:9px;color:{color_e};font-weight:800;">
-                        Ver →
-                    </div>
-                </div>""", unsafe_allow_html=True)
-
-            # Top 3 seguros
-            st.markdown('<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:12px 0 8px;">✅ Top 3 Municipios más seguros</div>',
-                unsafe_allow_html=True)
+            st.markdown('<div style="font-size:12px;font-weight:700;color:#1E1B4B;margin:14px 0 8px;">✅ Top 3 Municipios más seguros</div>', unsafe_allow_html=True)
             for mun in mun_sorted_d[-3:][::-1]:
                 mcolor = get_risk_color(mun["score"])
                 st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;
-                    padding:9px 12px;background:{mcolor}0d;border-radius:12px;margin-bottom:7px;
-                    border:1.5px solid {mcolor}28;">
-                    <span style="font-size:12px;color:#1E1B4B;font-weight:800;">✅ {mun['name']}</span>
+                    padding:8px 10px;background:{mcolor}0d;border-radius:10px;margin-bottom:6px;
+                    border:1px solid {mcolor}25;">
+                    <span style="font-size:12px;color:#1E1B4B;font-weight:700;">✅ {mun['name']}</span>
                     <div style="display:flex;align-items:center;gap:6px;">
-                        <span style="font-size:13px;font-weight:900;color:{mcolor};">{mun['score']:.1f}</span>
+                        <span style="font-size:12px;font-weight:900;color:{mcolor};">{mun['score']:.1f}</span>
                         {risk_badge(mun['zona'], small=True)}
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-            if st.button(f"🤖 Análisis IA municipios de {dep_muni_sel}", key="ai_mun_btn",
-                    use_container_width=True, type="primary"):
+            if st.button(f"🤖 Análisis IA municipios de {dep_muni_sel}", key="ai_mun_btn", use_container_width=True, type="primary"):
                 with st.spinner("Analizando con IA..."):
                     top_muns = ", ".join([f"{m['name']} ({m['score']:.1f})" for m in mun_sorted_d[:3]])
                     safe_muns = ", ".join([f"{m['name']} ({m['score']:.1f})" for m in mun_sorted_d[-3:][::-1]])
@@ -1962,157 +1510,68 @@ elif "🗺️" in page:
 
             ai_mun_r = st.session_state.get(f"ai_mun_{dep_muni_sel}", "")
             if ai_mun_r:
-                st.markdown(f"""<div style="background:linear-gradient(135deg,#1E1B4B,#3B1FA8);
-                    border-radius:16px;padding:14px 16px;margin-top:10px;">
-                    <div style="font-size:10px;font-weight:900;color:#A78BFA;margin-bottom:8px;
-                        letter-spacing:0.4px;">🤖 INTERPRETACIÓN IA — SARA</div>
-                    <div style="font-size:11px;color:#EDE9FE;line-height:1.8;
-                        white-space:pre-wrap;">{ai_mun_r}</div>
-                </div>""", unsafe_allow_html=True)
+                st.markdown(f"""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:16px;padding:14px;
+                    border:1px solid #C4B5FD;font-size:12px;color:#1E1B4B;line-height:1.75;white-space:pre-wrap;">{ai_mun_r}</div>""",
+                    unsafe_allow_html=True)
 
         else:
             sel_name = st.session_state.get("selected_dep")
             if sel_name and sel_name in CRIME_DATA:
                 sel = {"name": sel_name, **CRIME_DATA[sel_name]}
                 color = get_risk_color(sel["score"])
-
-                st.markdown(f"""<div class="side-panel">
+                st.markdown(f"""<div class="sh-card">
                     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;">
                         <div>
-                            <div style="font-size:18px;font-weight:900;color:#1E1B4B;">{sel['name']}</div>
-                            <div style="font-size:11px;color:#A78BFA;margin-top:2px;">
-                                Colombia · {sel['municipios']} municipios
-                            </div>
+                            <div style="font-size:19px;font-weight:900;color:#1E1B4B;">{sel["name"]}</div>
+                            <div style="font-size:11px;color:#A78BFA;margin-top:2px;">Colombia · {sel["municipios"]} municipios</div>
                         </div>
-                        <div class="ia-badge">🤖 IA</div>
+                        <div style="width:42px;height:42px;background:{color}15;border-radius:12px;
+                            display:flex;align-items:center;justify-content:center;font-size:22px;">🗺️</div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;
-                        background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:16px;padding:14px;">
+                    <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;
+                        background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:16px;padding:16px;">
                         <div style="text-align:center;">
-                            <div style="font-size:40px;font-weight:900;color:{color};
-                                font-family:Georgia,serif;line-height:1;">{sel['score']:.1f}</div>
-                            <div style="font-size:10px;color:#A78BFA;font-weight:700;">/ 6.0</div>
+                            <div style="font-size:40px;font-weight:900;color:{color};font-family:Georgia,serif;line-height:1;">{sel['score']:.1f}</div>
+                            <div style="font-size:10px;color:#A78BFA;font-weight:600;">/ 6.0</div>
                         </div>
                         <div>
-                            <div style="font-size:11px;color:#6B7280;margin-bottom:6px;">Nivel de riesgo:</div>
+                            <div style="font-size:12px;color:#6B7280;margin-bottom:8px;">Nivel de riesgo:</div>
                             <div style="margin-bottom:6px;">{risk_badge(sel['zona'])}</div>
                             <div>{risk_badge(sel['gravedad'])}</div>
                         </div>
                     </div>
-                    <div style="background:#EDE9FE;border-radius:8px;height:9px;margin-bottom:16px;overflow:hidden;">
-                        <div style="width:{sel['score']/6*100:.0f}%;height:100%;
-                            background:linear-gradient(90deg,{color}77,{color});border-radius:8px;
-                            animation:barGrow 1.1s ease both;"></div>
+                    <div style="background:#EDE9FE;border-radius:8px;height:10px;margin-bottom:18px;">
+                        <div style="width:{sel['score']/6*100:.0f}%;height:100%;background:linear-gradient(90deg,{color}88,{color});border-radius:8px;"></div>
                     </div>
-                </div>""", unsafe_allow_html=True)
+                    <div style="font-size:12px;font-weight:700;color:#1E1B4B;margin-bottom:10px;">⚖️ Riesgo por tipo de delito</div>
+                """, unsafe_allow_html=True)
 
-                # Predicción IA
-                st.markdown(f"""<div class="prediction-banner">
-                    <div style="font-size:11px;font-weight:900;color:#991B1B;margin-bottom:5px;">
-                        ⚠️ Predicción IA · Tendencia
-                    </div>
-                    <div style="font-size:11px;color:#7F1D1D;line-height:1.6;">
-                        {'🔴 Riesgo en aumento. Alta actividad criminal registrada.' if sel['score']>=4.0
-                         else '🟡 Patrón de riesgo moderado. Monitoreo continuo activo.' if sel['score']>=3.0
-                         else '🟢 Zona estable. Sin alertas críticas previstas.'}
-                    </div>
-                </div>
-                <div class="trend-banner" style="margin-bottom:14px;">
-                    <div style="font-size:11px;font-weight:900;color:#1D4ED8;margin-bottom:5px;">
-                        📍 Zona con tendencia {'creciente ↑' if sel['score']>=3.5 else 'estable →'}
-                    </div>
-                    <div style="font-size:11px;color:#1E40AF;line-height:1.6;">
-                        🤖 Interpretación IA: {'Incremento detectado — refuerzo urgente.' if sel['score']>=4.0
-                         else 'Patrón bajo control con monitoreo preventivo.' if sel['score']>=3.0
-                         else 'Situación controlada — mantener estrategias vigentes.'}
-                    </div>
-                </div>""", unsafe_allow_html=True)
-
-                # Delitos
-                st.markdown('<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin-bottom:8px;">📈 Delitos frecuentes</div>',
-                    unsafe_allow_html=True)
                 zonas_list = ["MUY BAJO","BAJO","MEDIO-BAJO","MEDIO-ALTO","ALTO","MUY ALTO"]
                 for d in DELITOS:
                     fac = DELIT_FACTOR.get(d, 1.0)
-                    sc = sel["score"]*fac
-                    z = zonas_list[min(max(round(sc)-1,0),5)]
-                    cfg = RISK_LEVELS.get(z, {"color":"#888"})
-                    pct_d = int(sc/6*100)
-                    st.markdown(f"""<div style="padding:7px 0;border-bottom:1px solid #EDE9FE;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-                            <span style="font-size:11px;color:#1E1B4B;">{d}</span>
-                            <div style="display:flex;align-items:center;gap:5px;">
-                                <span style="font-size:11px;font-weight:800;color:{cfg['color']};">{sc:.1f}</span>
-                                {risk_badge(z, small=True)}
-                            </div>
-                        </div>
-                        <div class="mini-bar-track">
-                            <div class="mini-bar-fill" style="width:{pct_d}%;
-                                background:linear-gradient(90deg,{cfg['color']}66,{cfg['color']});"></div>
+                    sc = sel["score"] * fac
+                    z = zonas_list[min(max(round(sc) - 1, 0), 5)]
+                    cfg = RISK_LEVELS.get(z, {"color": "#888"})
+                    st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;
+                        padding:7px 0;border-bottom:1px solid #EDE9FE;">
+                        <span style="font-size:11px;color:#1E1B4B;">{d}</span>
+                        <div style="display:flex;align-items:center;gap:6px;">
+                            <span style="font-size:11px;font-weight:700;color:{cfg['color']};">{sc:.1f}</span>
+                            {risk_badge(z, small=True)}
                         </div>
                     </div>""", unsafe_allow_html=True)
 
-                # Horarios
-                st.markdown('<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:14px 0 8px;">⏰ Horarios críticos</div>',
-                    unsafe_allow_html=True)
-                h_risks = [("🌙 Madrugada (0–6h)","BAJO"),("☀️ Mañana (6–12h)","MUY BAJO"),
-                           ("🌤️ Tarde (12–18h)","MEDIO-BAJO"),
-                           ("🌆 Noche (18–24h)","MUY ALTO" if sel["score"]>=4.0 else "ALTO" if sel["score"]>=3.0 else "MEDIO-ALTO")]
+                st.markdown('<div style="font-size:12px;font-weight:700;color:#1E1B4B;margin:14px 0 8px;">🕐 Riesgo por Horario</div>', unsafe_allow_html=True)
+                h_risks = [("Madrugada (0–6h)","BAJO"),("Mañana (6–12h)","MUY BAJO"),
+                           ("Tarde (12–18h)","MEDIO-BAJO"),("Noche (18–24h)","MUY ALTO" if sel["score"]>=4.0 else "ALTO" if sel["score"]>=3.0 else "MEDIO-ALTO")]
                 for h_label, h_risk in h_risks:
-                    h_cfg = RISK_LEVELS.get(h_risk,{"color":"#888"})
                     st.markdown(f"""<div style="display:flex;justify-content:space-between;align-items:center;
-                        padding:7px 0;border-bottom:1px solid #EDE9FE;">
+                        padding:6px 0;border-bottom:1px solid #EDE9FE;">
                         <span style="font-size:11px;color:#1E1B4B;">{h_label}</span>
                         {risk_badge(h_risk, small=True)}
                     </div>""", unsafe_allow_html=True)
 
-                # Entidades cercanas
-                st.markdown("""<div style="font-size:12px;font-weight:800;color:#1E1B4B;margin:14px 0 8px;">
-                    🏥 Entidades cercanas</div>""", unsafe_allow_html=True)
-                for icon, nom, tipo, color_e in [
-                    ("🚔","Policía Nacional","Seguridad 24/7","#1D4ED8"),
-                    ("🏥","Hospital / Clínica","Atención médica","#059669"),
-                    ("⚖️","Comisaría de Familia","Apoyo familiar","#7C3AED"),
-                ]:
-                    st.markdown(f"""<div style="display:flex;align-items:center;gap:10px;
-                        padding:8px 12px;background:{color_e}08;border-radius:12px;margin-bottom:6px;
-                        border:1px solid {color_e}18;cursor:pointer;transition:background 0.15s;">
-                        <span style="font-size:18px;">{icon}</span>
-                        <div>
-                            <div style="font-size:11px;font-weight:800;color:#1E1B4B;">{nom}</div>
-                            <div style="font-size:10px;color:#6B7280;">{tipo}</div>
-                        </div>
-                        <div style="margin-left:auto;font-size:9px;color:{color_e};font-weight:800;">
-                            Ver →
-                        </div>
-                    </div>""", unsafe_allow_html=True)
-
-                # Botón recomendaciones
-                if st.button("💡 Ver recomendaciones de seguridad", key="rec_btn",
-                        use_container_width=True):
-                    rec_color2, rec_bg2, rec_text2 = (
-                        ("#991B1B","linear-gradient(135deg,#FEF2F2,#FEE2E2)",
-                         "🚨 Zona de alto riesgo. Refuerzo urgente de patrullaje y coordinación con Fiscalía.")
-                        if sel["score"]>=4.0 else
-                        ("#92400E","linear-gradient(135deg,#FFFBEB,#FEF3C7)",
-                         "⚠️ Riesgo moderado. Monitoreo activo y campañas de prevención.")
-                        if sel["score"]>=3.0 else
-                        ("#065F46","linear-gradient(135deg,#ECFDF5,#D1FAE5)",
-                         "✅ Riesgo controlado. Mantener estrategias preventivas.")
-                    )
-                    st.session_state[f"rec_shown_{sel_name}"] = (rec_color2, rec_bg2, rec_text2)
-
-                if st.session_state.get(f"rec_shown_{sel_name}"):
-                    rc, rb, rt = st.session_state[f"rec_shown_{sel_name}"]
-                    st.markdown(f"""<div style="background:{rb};border-radius:14px;padding:14px 16px;
-                        font-size:12px;line-height:1.7;margin-top:8px;border:1.5px solid {rc}25;
-                        animation:fadeSlideUp 0.3s ease both;">
-                        <span style="color:{rc};font-weight:800;">{rt}</span>
-                    </div>""", unsafe_allow_html=True)
-
-                # Análisis IA
-                if st.button(f"🤖 Análisis IA completo de {sel_name}", key="ai_map_btn",
-                        use_container_width=True, type="primary"):
+                if st.button(f"🤖 Análisis IA completo de {sel_name}", key="ai_map_btn", use_container_width=True, type="primary"):
                     with st.spinner("Analizando con IA..."):
                         ai_text = call_claude(
                             "Eres experto en seguridad pública colombiana. Análisis breve (máx 130 palabras) con bullets y emojis: contexto del departamento, amenazas principales para mujeres, horarios de mayor riesgo, recomendación operativa clave.",
@@ -2122,31 +1581,26 @@ elif "🗺️" in page:
 
                 ai_result = st.session_state.get(f"ai_map_{sel_name}", "")
                 if ai_result:
-                    st.markdown(f"""<div style="background:linear-gradient(135deg,#1E1B4B,#3B1FA8);
-                        border-radius:16px;padding:16px;margin-top:8px;
-                        animation:fadeSlideIn 0.4s ease both;">
-                        <div style="font-size:10px;font-weight:900;color:#A78BFA;margin-bottom:8px;
-                            letter-spacing:0.4px;">🤖 INTERPRETACIÓN IA — SARA</div>
-                        <div style="font-size:11px;color:#EDE9FE;line-height:1.8;
-                            white-space:pre-wrap;">{ai_result}</div>
-                    </div>""", unsafe_allow_html=True)
+                    st.markdown(f"""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:16px;padding:16px;
+                        border:1px solid #C4B5FD;font-size:12px;color:#1E1B4B;line-height:1.75;white-space:pre-wrap;">{ai_result}</div>""",
+                        unsafe_allow_html=True)
 
+                if sel["score"] >= 4.0:
+                    rec_color, rec_bg, rec_text = "#991B1B","#FEF2F2","🚨 Zona de alto riesgo. Refuerzo urgente de patrullaje y coordinación con Fiscalía."
+                elif sel["score"] >= 3.0:
+                    rec_color, rec_bg, rec_text = "#92400E","#FFFBEB","⚠️ Riesgo moderado. Monitoreo activo y campañas de prevención."
+                else:
+                    rec_color, rec_bg, rec_text = "#065F46","#ECFDF5","✅ Riesgo controlado. Mantener estrategias preventivas."
+                st.markdown(f"""<div style="background:{rec_bg};border-radius:14px;padding:14px 16px;font-size:12px;
+                    line-height:1.6;margin-top:10px;border:1px solid {rec_color}22;">
+                    <span style="color:{rec_color};font-weight:700;">{rec_text}</span>
+                </div>""", unsafe_allow_html=True)
             else:
-                st.markdown("""<div class="side-panel" style="text-align:center;padding:40px 20px;">
-                    <div style="font-size:52px;margin-bottom:16px;">🗺️</div>
-                    <div style="font-size:15px;font-weight:900;color:#5B21B6;margin-bottom:8px;">
-                        Selecciona una zona
-                    </div>
-                    <div style="font-size:12px;color:#A78BFA;line-height:1.8;">
-                        Haz clic en un <strong>departamento</strong> de la lista o en el mapa
-                        para ver el análisis completo:<br><br>
-                        📈 Delitos frecuentes<br>⏰ Horarios críticos<br>
-                        🏥 Entidades cercanas<br>🤖 Predicción IA
-                    </div>
-                    <div class="ia-badge" style="margin:16px auto 0;display:inline-flex;">
-                        <span class="ia-dot"></span><span class="ia-dot"></span><span class="ia-dot"></span>
-                        IA lista para analizar
-                    </div>
+                st.markdown("""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:20px;
+                    border:2px dashed #C4B5FD;padding:48px 24px;text-align:center;">
+                    <div style="font-size:48px;margin-bottom:14px;">🗺️</div>
+                    <div style="font-size:15px;font-weight:700;color:#5B21B6;margin-bottom:6px;">Selecciona un departamento</div>
+                    <div style="font-size:12px;color:#A78BFA;line-height:1.7;">Haz clic en cualquier departamento de la lista para ver el análisis detallado de riesgo y obtener interpretación con IA.</div>
                 </div>""", unsafe_allow_html=True)
 
 # ── VIAJE SEGURO ──────────────────────────────────────────────────────────────
