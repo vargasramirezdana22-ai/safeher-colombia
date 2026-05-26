@@ -1984,321 +1984,93 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
             # ── Tab 4: GUÍA TURÍSTICA — diccionario estático ──────────────────
             with tab_guia:
 
-                GUIAS_TOP = {
-                    "MEDELLÍN": {
-                        "categoria": "Guía más concurrida",
-                        "hoteles": [
-                            {"nombre": "Hotel Dann Carlton Medellín", "tipo": "Hotel 5 estrellas", "precio": "$$$", "descripcion": "Ubicado en El Poblado, zona turística de Medellín. Desde $350.000 - $650.000 COP/noche.", "seguridad": "Zona segura y turística, ideal para mujeres viajeras.", "booking": "Booking.com"},
-                            {"nombre": "Hotel Poblado Plaza", "tipo": "Hotel 4 estrellas", "precio": "$$", "descripcion": "En el corazón de El Poblado. Desde $200.000 - $350.000 COP/noche.", "seguridad": "El Poblado es la zona más segura para turistas.", "booking": "Booking.com / Expedia"},
-                            {"nombre": "Selina Medellín", "tipo": "Hostal boutique", "precio": "$", "descripcion": "Laureles, ambiente joven y seguro. Desde $60.000 COP/noche en dorm.", "seguridad": "Ambiente seguro con comunidad de viajeras.", "booking": "Booking.com / Airbnb"},
-                        ],
-                        "restaurantes": [
-                            {"nombre": "Mondongo's", "tipo": "Comida paisa", "especialidad": "Bandeja paisa y mondongo", "zona": "El Poblado / Envigado", "precio": "$$", "horario": "10am - 9pm"},
-                            {"nombre": "El Cielo", "tipo": "Alta cocina colombiana", "especialidad": "Menú degustación", "zona": "El Poblado", "precio": "$$$", "horario": "12pm - 10pm"},
-                            {"nombre": "Hija de Tigre", "tipo": "Cocina de autor", "especialidad": "Tacos y cocina fusión", "zona": "Laureles", "precio": "$$", "horario": "12pm - 11pm"},
-                        ],
-                        "sitios_turisticos": [
-                            {"nombre": "Comuna 13", "tipo": "Cultural", "descripcion": "Famosa por sus murales y escaleras eléctricas. Transformación urbana emblemática.", "consejo": "Ir con guía local, evitar ir sola de noche.", "entrada": "Gratis"},
-                            {"nombre": "Parque Arví", "tipo": "Naturaleza", "descripcion": "Reserva natural a 30 min en metro cable desde El Centro.", "consejo": "Llevar ropa cómoda y snacks.", "entrada": "$5.000 COP (metro cable)"},
-                            {"nombre": "Museo de Antioquia", "tipo": "Cultural", "descripcion": "Obras de Fernando Botero y arte colombiano.", "consejo": "Martes a domingo, llegar temprano.", "entrada": "$20.000 COP"},
-                            {"nombre": "El Peñón de Guatapé", "tipo": "Naturaleza", "descripcion": "A 1.5 horas de Medellín, vista panorámica espectacular.", "consejo": "Tour desde Medellín disponible todos los días.", "entrada": "$25.000 COP"},
-                        ],
-                        "actividades": [
-                            {"nombre": "Tour gastronómico El Poblado", "nivel": "Fácil", "duracion": "4 horas", "descripcion": "Recorrido por restaurantes y mercados locales.", "precio_aprox": "$120.000 COP"},
-                            {"nombre": "City tour en bicicleta", "nivel": "Moderado", "duracion": "3 horas", "descripcion": "Recorre Laureles y El Poblado en bici guiada.", "precio_aprox": "$80.000 COP"},
-                            {"nombre": "Tour graffiti y arte urbano", "nivel": "Fácil", "duracion": "2 horas", "descripcion": "Recorrido por murales del centro y la 70.", "precio_aprox": "$50.000 COP"},
-                        ],
-                        "dato_curioso": "Medellín es llamada 'la ciudad de la eterna primavera' por su temperatura promedio de 22°C todo el año, y fue elegida la ciudad más innovadora del mundo en 2013.",
-                        "mejor_epoca": "Diciembre a marzo (temporada seca). Feria de las Flores en agosto."
-                    },
-                    "CARTAGENA": {
-                        "categoria": "Guía más concurrida",
-                        "hoteles": [
-                            {"nombre": "Hotel Caribe", "tipo": "Resort 5 estrellas", "precio": "$$$", "descripcion": "Frente al mar en Bocagrande. Desde $750.000 COP/noche.", "seguridad": "Zona turística con seguridad privada.", "booking": "Booking.com"},
-                            {"nombre": "Casa San Agustín", "tipo": "Hotel boutique", "precio": "$$$", "descripcion": "En el Centro Histórico amurallado. Desde $900.000 COP/noche.", "seguridad": "Dentro de la ciudad amurallada, muy seguro.", "booking": "Booking.com / Expedia"},
-                            {"nombre": "Hotel Monterrey", "tipo": "Hotel", "precio": "$$", "descripcion": "Bocagrande, frente al mar. Desde $280.000 COP/noche.", "seguridad": "Zona turística recomendada.", "booking": "Booking.com"},
-                        ],
-                        "restaurantes": [
-                            {"nombre": "La Cevichería", "tipo": "Mariscos", "especialidad": "Ceviche caribeño", "zona": "Centro Histórico", "precio": "$$$", "horario": "12pm - 10pm"},
-                            {"nombre": "El Santísimo", "tipo": "Colombiana fusión", "especialidad": "Langosta y cazuela de mariscos", "zona": "Centro Histórico", "precio": "$$$", "horario": "12pm - 11pm"},
-                            {"nombre": "La Mulata", "tipo": "Costeña tradicional", "especialidad": "Arroz con coco y pescado", "zona": "Getsemaní", "precio": "$$", "horario": "11am - 9pm"},
-                        ],
-                        "sitios_turisticos": [
-                            {"nombre": "Ciudad Amurallada", "tipo": "Histórico", "descripcion": "Centro colonial Patrimonio de la Humanidad UNESCO.", "consejo": "Usar bloqueador y agua. Caminar en la mañana.", "entrada": "Gratis"},
-                            {"nombre": "Castillo San Felipe", "tipo": "Histórico", "descripcion": "Fortaleza militar del siglo XVII con túneles.", "consejo": "Visitar en la tarde para evitar el calor.", "entrada": "$25.000 COP"},
-                            {"nombre": "Islas del Rosario", "tipo": "Naturaleza", "descripcion": "Archipiélago de playas cristalinas a 45 min en lancha.", "consejo": "Reservar lancha con anticipación.", "entrada": "$180.000 COP (tour)"},
-                            {"nombre": "Barrio Getsemaní", "tipo": "Cultural", "descripcion": "Arte urbano y vida nocturna auténtica cartagenera.", "consejo": "Ir de día o en grupo de noche.", "entrada": "Gratis"},
-                        ],
-                        "actividades": [
-                            {"nombre": "Tour Islas del Rosario", "nivel": "Fácil", "duracion": "Día completo", "descripcion": "Snorkel y playas paradisíacas.", "precio_aprox": "$180.000 COP"},
-                            {"nombre": "Chiva rumbera", "nivel": "Fácil", "duracion": "3 horas", "descripcion": "Tour nocturno en bus festivo por la ciudad.", "precio_aprox": "$80.000 COP"},
-                        ],
-                        "dato_curioso": "Cartagena fue declarada Patrimonio Histórico de la Humanidad por la UNESCO en 1984 y es una de las ciudades coloniales mejor conservadas de América Latina.",
-                        "mejor_epoca": "Diciembre a abril (temporada seca). Semana Santa y diciembre son los picos turísticos."
-                    },
-                    "BOGOTÁ": {
-                        "categoria": "Guía más concurrida",
-                        "hoteles": [
-                            {"nombre": "Hotel Tequendama", "tipo": "Hotel 5 estrellas", "precio": "$$$", "descripcion": "Centro Internacional. Desde $280.000 COP/noche.", "seguridad": "Usar taxi/app de noche, zona central.", "booking": "Booking.com"},
-                            {"nombre": "Hotel Click Clack", "tipo": "Hotel boutique", "precio": "$$", "descripcion": "Zona Rosa, Chapinero. Desde $220.000 COP/noche.", "seguridad": "Zona Rosa es segura y turística.", "booking": "Booking.com / Airbnb"},
-                            {"nombre": "Casa Platypus", "tipo": "Hostal", "precio": "$", "descripcion": "La Candelaria. Desde $55.000 COP/noche.", "seguridad": "La Candelaria requiere precaución de noche.", "booking": "Booking.com"},
-                        ],
-                        "restaurantes": [
-                            {"nombre": "Andrés DC", "tipo": "Colombiana", "especialidad": "Picadas y ajiaco bogotano", "zona": "Zona T, Chapinero", "precio": "$$$", "horario": "12pm - 2am"},
-                            {"nombre": "Leo Cocina y Cava", "tipo": "Alta cocina colombiana", "especialidad": "Menú degustación con ingredientes amazónicos", "zona": "Chapinero", "precio": "$$$", "horario": "12pm - 10pm"},
-                            {"nombre": "La Puerta Falsa", "tipo": "Santafereña tradicional", "especialidad": "Ajiaco y chocolate con almojábanas", "zona": "La Candelaria", "precio": "$", "horario": "8am - 8pm"},
-                        ],
-                        "sitios_turisticos": [
-                            {"nombre": "Monserrate", "tipo": "Cultural", "descripcion": "Cerro emblemático con santuario y vista panorámica de Bogotá.", "consejo": "Ir en teleférico, temprano en la mañana.", "entrada": "$16.000 COP"},
-                            {"nombre": "Museo del Oro", "tipo": "Histórico", "descripcion": "La colección de oro precolombino más grande del mundo.", "consejo": "Entrada gratuita los domingos.", "entrada": "$4.000 COP"},
-                            {"nombre": "Zona Rosa y Parque 93", "tipo": "Cultural", "descripcion": "Zona de restaurantes, bares y tiendas de diseño.", "consejo": "Perfecta para caminar de día y noche.", "entrada": "Gratis"},
-                            {"nombre": "Usaquén", "tipo": "Cultural", "descripcion": "Pueblo colonial dentro de Bogotá con mercado los domingos.", "consejo": "Visitar el mercado de pulgas los domingos.", "entrada": "Gratis"},
-                        ],
-                        "actividades": [
-                            {"nombre": "Tour graffiti La Candelaria", "nivel": "Fácil", "duracion": "3 horas", "descripcion": "Arte urbano en el centro histórico.", "precio_aprox": "$50.000 COP"},
-                            {"nombre": "Ciclovía dominical", "nivel": "Fácil", "duracion": "Mañana completa", "descripcion": "120 km de vías cerradas para ciclistas y peatones.", "precio_aprox": "Gratis"},
-                        ],
-                        "dato_curioso": "Bogotá tiene la ciclovía permanente más grande del mundo con 120 km, y los domingos se cierra el 20% de las vías al tráfico vehicular.",
-                        "mejor_epoca": "Diciembre a marzo y julio (temporada seca). Feria del Libro en abril."
-                    },
-                    "SANTA MARTA": {
-                        "categoria": "Guía más concurrida",
-                        "hoteles": [
-                            {"nombre": "Irotama Resort", "tipo": "Resort", "precio": "$$$", "descripcion": "Frente al mar, zona Bello Horizonte. Desde $390.000 COP/noche.", "seguridad": "Zona turística muy segura.", "booking": "Booking.com"},
-                            {"nombre": "La Brisa Loca", "tipo": "Hostal", "precio": "$", "descripcion": "Centro histórico, ambiente festivo. Desde $70.000 COP/noche.", "seguridad": "Popular entre mochileros, seguro.", "booking": "Booking.com / Hostelworld"},
-                        ],
-                        "restaurantes": [
-                            {"nombre": "Lulo Café Bar", "tipo": "Caribeña", "especialidad": "Comida costeña y jugos tropicales", "zona": "Centro histórico", "precio": "$$", "horario": "8am - 10pm"},
-                            {"nombre": "La Casa del Pargo", "tipo": "Mariscos", "especialidad": "Pargo rojo y ceviches", "zona": "El Rodadero", "precio": "$$", "horario": "11am - 9pm"},
-                        ],
-                        "sitios_turisticos": [
-                            {"nombre": "Parque Tayrona", "tipo": "Naturaleza", "descripcion": "Playas vírgenes, senderos en la selva y arrecifes de coral.", "consejo": "Llevar hidratación, repelente y efectivo. No entra carro.", "entrada": "$80.000 COP"},
-                            {"nombre": "Ciudad Perdida", "tipo": "Histórico", "descripcion": "Sitio arqueológico indígena, 4-6 días de trekking.", "consejo": "Solo con agencia autorizada. Mínimo 3 noches.", "entrada": "$1.200.000 COP (tour completo)"},
-                            {"nombre": "Minca", "tipo": "Naturaleza", "descripcion": "Pueblo de montaña con cascadas y fincas cafeteras a 45 min.", "consejo": "Ideal para escapar del calor costero.", "entrada": "Gratis (transporte $15.000)"},
-                        ],
-                        "actividades": [
-                            {"nombre": "Excursión a Minca", "nivel": "Moderado", "duracion": "Día completo", "descripcion": "Cascadas, café y naturaleza en la Sierra Nevada.", "precio_aprox": "$150.000 COP"},
-                            {"nombre": "Snorkel en Tayrona", "nivel": "Fácil", "duracion": "4 horas", "descripcion": "Arrecifes de coral en el Parque Tayrona.", "precio_aprox": "$80.000 COP"},
-                        ],
-                        "dato_curioso": "Santa Marta es la ciudad más antigua de Colombia, fundada en 1525. Alberga los restos de Simón Bolívar en la Quinta de San Pedro Alejandrino.",
-                        "mejor_epoca": "Diciembre a abril (temporada seca costera). Evitar octubre–noviembre por lluvias."
-                    },
-                    "SAN ANDRÉS": {
-                        "categoria": "Guía más concurrida",
-                        "hoteles": [
-                            {"nombre": "Decameron Isleño", "tipo": "Resort todo incluido", "precio": "$$$", "descripcion": "Frente al mar, sector norte. Desde $900.000 COP/noche.", "seguridad": "Resort con seguridad 24h, muy tranquilo.", "booking": "Booking.com / Decameron.com"},
-                            {"nombre": "Hotel Lord Pierre", "tipo": "Hotel", "precio": "$$", "descripcion": "Zona centro, cómodo y bien ubicado. Desde $350.000 COP/noche.", "seguridad": "Zona turística central.", "booking": "Booking.com"},
-                        ],
-                        "restaurantes": [
-                            {"nombre": "La Regatta", "tipo": "Mariscos internacionales", "especialidad": "Langosta y comida criolla isleña", "zona": "Centro, frente al mar", "precio": "$$$", "horario": "12pm - 11pm"},
-                            {"nombre": "Fisherman Place", "tipo": "Caribeña", "especialidad": "Rondon (sopa típica isleña)", "zona": "San Luis", "precio": "$$", "horario": "11am - 9pm"},
-                        ],
-                        "sitios_turisticos": [
-                            {"nombre": "Johnny Cay", "tipo": "Naturaleza", "descripcion": "Pequeña isla paradisíaca frente a San Andrés con arena blanca.", "consejo": "Ir en la mañana, usar bloqueador biodegradable.", "entrada": "$20.000 COP"},
-                            {"nombre": "El Acuario y Haynes Cay", "tipo": "Naturaleza", "descripcion": "Aguas cristalinas donde puedes caminar sobre el mar.", "consejo": "Llevar snorkel. Tour desde el muelle.", "entrada": "$50.000 COP (tour)"},
-                            {"nombre": "Cueva de Morgan", "tipo": "Histórico", "descripcion": "Cueva del pirata Henry Morgan, leyenda de la isla.", "consejo": "Visitar con guía para conocer la historia.", "entrada": "$15.000 COP"},
-                        ],
-                        "actividades": [
-                            {"nombre": "Tour mantarrayas y snorkel", "nivel": "Fácil", "duracion": "4 horas", "descripcion": "Nadar con mantarrayas y tortugas en aguas cristalinas.", "precio_aprox": "$90.000 COP"},
-                            {"nombre": "Buceo en arrecifes", "nivel": "Moderado", "duracion": "3 horas", "descripcion": "Los arrecifes de San Andrés tienen visibilidad hasta 30m.", "precio_aprox": "$220.000 COP"},
-                        ],
-                        "dato_curioso": "San Andrés tiene el 'Mar de Siete Colores' declarado Reserva de Biosfera UNESCO. Sus aguas van del turquesa al azul profundo según la profundidad.",
-                        "mejor_epoca": "Enero a mayo (temporada seca). Evitar septiembre–octubre (huracanes)."
-                    },
-                }
+                guia = obtener_guia(vr["dep"], vr.get("mun_sel") or vr["dep"])
 
-                GUIAS_PREMIUM = {
-                    "GUATAPÉ":             {"dato_curioso": "Uno de los pueblos más coloridos de Colombia, famoso por sus zócalos decorados y El Peñol.", "mejor_epoca": "Diciembre a marzo."},
-                    "SALENTO":             {"dato_curioso": "Entrada principal al Valle del Cocora con las palmas de cera más altas del mundo, árbol nacional.", "mejor_epoca": "Junio a agosto."},
-                    "BARICHARA":           {"dato_curioso": "Considerado el pueblo más bonito de Colombia, con arquitectura colonial en piedra caliza.", "mejor_epoca": "Todo el año."},
-                    "SAN GIL":             {"dato_curioso": "Capital colombiana de los deportes extremos: rafting, parapente y espeleología.", "mejor_epoca": "Diciembre a febrero."},
-                    "VILLA DE LEYVA":      {"dato_curioso": "Tiene una de las plazas principales más grandes de Latinoamérica, completamente empedrada.", "mejor_epoca": "Diciembre y Semana Santa."},
-                    "GUADALAJARA DE BUGA": {"dato_curioso": "Importante destino de turismo religioso, sede del Señor de los Milagros.", "mejor_epoca": "Todo el año."},
-                    "NUQUÍ":               {"dato_curioso": "Uno de los destinos de avistamiento de ballenas jorobadas más importantes de Colombia.", "mejor_epoca": "Julio a octubre (ballenas)."},
-                    "LETICIA":             {"dato_curioso": "La única ciudad colombiana en el Amazonas, punto de encuentro de Colombia, Brasil y Perú.", "mejor_epoca": "Junio a agosto (aguas bajas)."},
-                }
-
-                def guia_basica(dep, muni):
-                    return {
-                        "categoria": "Guía básica",
-                        "hoteles": [], "restaurantes": [],
-                        "sitios_turisticos": [], "actividades": [],
-                        "dato_curioso": f"{muni.title()} es un municipio del departamento de {dep.title()}, Colombia.",
-                        "mejor_epoca": "Temporada seca entre diciembre y marzo.",
-                        "consejos": ["Usar transporte autorizado.", "Consultar clima antes de viajar.", "Evitar zonas solas de noche.", "Guardar números de emergencia."]
-                    }
-
-                def obtener_guia(dep, muni):
-                    muni_upper = muni.upper() if muni else dep.upper()
-                    if "BOGOTÁ" in muni_upper or "BOGOTA" in muni_upper:
-                        muni_upper = "BOGOTÁ"
-                    if muni_upper in GUIAS_TOP:
-                        return GUIAS_TOP[muni_upper]
-                    if muni_upper in GUIAS_PREMIUM:
-                        return GUIAS_PREMIUM[muni_upper]
-                    dep_upper = dep.upper()
-                    if "BOGOTÁ" in dep_upper:
-                        return GUIAS_TOP.get("BOGOTÁ", guia_basica(dep, muni))
-                    if "BOLÍVAR" in dep_upper:
-                        return GUIAS_TOP.get("CARTAGENA", guia_basica(dep, muni))
-                    if "MAGDALENA" in dep_upper:
-                        return GUIAS_TOP.get("SANTA MARTA", guia_basica(dep, muni))
-                    if "ANTIOQUIA" in dep_upper:
-                        return GUIAS_TOP.get("MEDELLÍN", guia_basica(dep, muni))
-                    if "SAN ANDRÉS" in dep_upper:
-                        return GUIAS_TOP.get("SAN ANDRÉS", guia_basica(dep, muni))
-                    return guia_basica(dep, muni)
-
-                mun_actual = vr.get("mun_sel") or vr["dep"]
-                guia = obtener_guia(vr["dep"], mun_actual)
-
-                cat_label = guia.get("categoria", "Guía turística")
-                cat_color = "#EC4899" if "concurrida" in cat_label else "#7C3AED" if "premium" in cat_label else "#059669"
-                cat_badge = "⭐ TOP" if "concurrida" in cat_label else "🏆 Premium" if "premium" in cat_label else "📍 Básica"
-
-                st.markdown(f"""<div style="background:linear-gradient(135deg,#1E1B4B,#312E81,#4C1D95);
-                    border-radius:20px;padding:22px 28px;margin-bottom:24px;color:#fff;">
-                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-                        <div style="font-size:11px;color:#A7F3D0;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;">{cat_label}</div>
-                        <div style="background:{cat_color};color:#fff;font-size:9px;font-weight:800;padding:3px 10px;border-radius:20px;">{cat_badge}</div>
+                st.markdown(f"""
+                <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:22px;
+                    padding:22px;margin-top:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:11px;font-weight:800;color:#6366F1;text-transform:uppercase;">
+                                {guia.get("categoria","Guía turística")}
+                            </div>
+                            <div style="font-size:28px;font-weight:900;color:#111827;">
+                                🗺️ {vr["dep"]}{f" · {vr['mun_sel']}" if vr.get("mun_sel") else ""}
+                            </div>
+                        </div>
                     </div>
-                    <div style="font-size:22px;font-weight:900;margin-bottom:4px;">{vr['dep']}, Colombia</div>
-                    <div style="font-size:13px;color:#C4B5FD;">Hoteles · Restaurantes · Turismo · Actividades</div>
-                </div>""", unsafe_allow_html=True)
+                </div>
+                """, unsafe_allow_html=True)
 
-                col_dc, col_me = st.columns(2)
-                with col_dc:
-                    st.markdown(f"""<div style="background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:1.5px solid #FED7AA;
-                        border-radius:16px;padding:16px 18px;margin-bottom:20px;">
-                        <div style="font-size:13px;font-weight:800;color:#C2410C;margin-bottom:8px;">💡 Dato Curioso</div>
-                        <div style="font-size:13px;color:#7C2D12;line-height:1.7;">{guia.get('dato_curioso','')}</div>
-                    </div>""", unsafe_allow_html=True)
-                with col_me:
-                    st.markdown(f"""<div style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border:1.5px solid #6EE7B7;
-                        border-radius:16px;padding:16px 18px;margin-bottom:20px;">
-                        <div style="font-size:13px;font-weight:800;color:#065F46;margin-bottom:8px;">📅 Mejor Época para Visitar</div>
-                        <div style="font-size:13px;color:#064E3B;line-height:1.7;">{guia.get('mejor_epoca','')}</div>
-                    </div>""", unsafe_allow_html=True)
+                if guia.get("dato_curioso"):
+                    st.info(f"💡 {guia['dato_curioso']}")
 
-                precio_color = {"$": "#059669", "$$": "#D97706", "$$$": "#7C3AED"}
+                if guia.get("mejor_epoca"):
+                    st.success(f"📅 Mejor época para viajar: {guia['mejor_epoca']}")
 
-                # Hoteles
                 hoteles = guia.get("hoteles", [])
                 if hoteles:
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin-bottom:14px;letter-spacing:-0.3px;">🏨 Alojamientos Recomendados</div>', unsafe_allow_html=True)
-                    cols_h = st.columns(2)
-                    for i, h in enumerate(hoteles):
-                        with cols_h[i % 2]:
-                            pc = precio_color.get(h.get("precio","$$"), "#6B7280")
-                            booking_html = f'<div style="background:#EFF6FF;color:#2563EB;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">🌐 {h.get("booking","")}</div>' if h.get('booking') and h.get('booking') not in ['No disponible',''] else ''
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                border-top:4px solid #7C3AED;">
-                                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-                                    <div style="font-size:14px;font-weight:800;color:#1E1B4B;line-height:1.3;flex:1;">{h.get('nombre','')}</div>
-                                    <span style="background:{pc}18;color:{pc};font-size:12px;font-weight:800;
-                                        padding:3px 10px;border-radius:20px;flex-shrink:0;margin-left:8px;">{h.get('precio','')}</span>
-                                </div>
-                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-                                    <div style="background:#F5F3FF;color:#5B21B6;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">{h.get('tipo','')}</div>
-                                    {booking_html}
-                                </div>
-                                <div style="font-size:12px;color:#374151;line-height:1.65;margin-bottom:10px;">{h.get('descripcion','')}</div>
-                                <div style="background:#ECFDF5;border-radius:10px;padding:8px 12px;display:flex;gap:8px;align-items:flex-start;">
-                                    <span style="font-size:14px;">🛡️</span>
-                                    <span style="font-size:11px;color:#065F46;line-height:1.5;">{h.get('seguridad','')}</span>
-                                </div>
-                            </div>""", unsafe_allow_html=True)
+                    st.markdown("### 🏨 Hoteles recomendados")
+                    for h in hoteles:
+                        st.markdown(f"""
+                        <div style="background:#F9FAFB;border:1px solid #E5E7EB;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#111827;">{h.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#6B7280;margin-bottom:8px;">
+                                {h.get('tipo','')} · {h.get('precio','')}
+                            </div>
+                            <div style="font-size:14px;color:#374151;">{h.get('descripcion','')}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                # Restaurantes
                 restaurantes = guia.get("restaurantes", [])
                 if restaurantes:
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin:8px 0 14px;letter-spacing:-0.3px;">🍽️ Restaurantes Recomendados</div>', unsafe_allow_html=True)
-                    cols_r = st.columns(2)
-                    for i, r in enumerate(restaurantes):
-                        with cols_r[i % 2]:
-                            pc2 = precio_color.get(r.get("precio","$$"), "#6B7280")
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                border-top:4px solid #EC4899;">
-                                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                                    <div style="font-size:14px;font-weight:800;color:#1E1B4B;line-height:1.3;flex:1;">{r.get('nombre','')}</div>
-                                    <span style="background:{pc2}18;color:{pc2};font-size:12px;font-weight:800;
-                                        padding:3px 10px;border-radius:20px;flex-shrink:0;margin-left:8px;">{r.get('precio','')}</span>
-                                </div>
-                                <div style="background:#FFF0F6;color:#BE185D;font-size:10px;font-weight:700;
-                                    padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:10px;">{r.get('tipo','')}</div>
-                                <div style="font-size:13px;color:#374151;margin-bottom:8px;">⭐ <strong>{r.get('especialidad','')}</strong></div>
-                                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
-                                    <span style="font-size:11px;color:#A78BFA;">📍 {r.get('zona','')}</span>
-                                    <span style="font-size:11px;color:#6B7280;">🕐 {r.get('horario','')}</span>
-                                </div>
-                            </div>""", unsafe_allow_html=True)
+                    st.markdown("### 🍽️ Restaurantes")
+                    for r in restaurantes:
+                        st.markdown(f"""
+                        <div style="background:#FFF7ED;border:1px solid #FED7AA;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#9A3412;">{r.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#7C2D12;margin-bottom:8px;">
+                                {r.get('tipo','')} · {r.get('precio','')}
+                            </div>
+                            <div style="font-size:14px;color:#7C2D12;">
+                                Especialidad: {r.get('especialidad','')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                # Sitios turísticos
                 sitios = guia.get("sitios_turisticos", [])
                 if sitios:
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin:8px 0 14px;letter-spacing:-0.3px;">🏛️ Sitios Turísticos</div>', unsafe_allow_html=True)
-                    tipo_color = {"Naturaleza":"#059669","Cultural":"#7C3AED","Histórico":"#D97706","Aventura":"#DC2626"}
-                    tipo_emoji = {"Naturaleza":"🌿","Cultural":"🎭","Histórico":"🏛️","Aventura":"🧗"}
-                    cols_s = st.columns(2)
-                    for i, s in enumerate(sitios):
-                        tc = tipo_color.get(s.get("tipo","Cultural"), "#2563EB")
-                        te = tipo_emoji.get(s.get("tipo","Cultural"), "📍")
-                        with cols_s[i % 2]:
-                            entrada_html = f'<div style="background:#F5F3FF;color:#5B21B6;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;">🎟️ {s.get("entrada","")}</div>' if s.get('entrada') else ''
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                display:flex;gap:14px;border-left:5px solid {tc};">
-                                <div style="width:48px;height:48px;background:{tc}15;border-radius:14px;
-                                    display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">{te}</div>
-                                <div style="flex:1;">
-                                    <div style="font-size:14px;font-weight:800;color:#1E1B4B;margin-bottom:4px;">{s.get('nombre','')}</div>
-                                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                                        <div style="background:{tc}18;color:{tc};font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;">{s.get('tipo','')}</div>
-                                        {entrada_html}
-                                    </div>
-                                    <div style="font-size:12px;color:#374151;line-height:1.6;margin-bottom:8px;">{s.get('descripcion','')}</div>
-                                    <div style="background:#F5F3FF;border-radius:8px;padding:7px 10px;font-size:11px;color:#5B21B6;">
-                                        💡 {s.get('consejo','')}
-                                    </div>
-                                </div>
-                            </div>""", unsafe_allow_html=True)
+                    st.markdown("### 📍 Sitios turísticos")
+                    for s in sitios:
+                        st.markdown(f"""
+                        <div style="background:#EFF6FF;border:1px solid #BFDBFE;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#1D4ED8;">{s.get('nombre','')}</div>
+                            <div style="font-size:14px;color:#1E3A8A;margin-top:6px;">
+                                {s.get('descripcion','')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                # Actividades
                 actividades = guia.get("actividades", [])
                 if actividades:
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin:8px 0 14px;letter-spacing:-0.3px;">🎯 Actividades Recomendadas</div>', unsafe_allow_html=True)
-                    nivel_color = {"Fácil":"#059669","Moderado":"#D97706","Difícil":"#DC2626"}
-                    cols_a = st.columns(2)
-                    for i, a in enumerate(actividades):
-                        nc = nivel_color.get(a.get("nivel","Fácil"), "#6B7280")
-                        with cols_a[i % 2]:
-                            precio_act = f'<span style="background:#FFFBEB;color:#D97706;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">💰 {a.get("precio_aprox","")}</span>' if a.get('precio_aprox') else ''
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                border-top:4px solid {nc};">
-                                <div style="font-size:14px;font-weight:800;color:#1E1B4B;margin-bottom:10px;">{a.get('nombre','')}</div>
-                                <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-                                    <span style="background:{nc}18;color:{nc};font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">{a.get('nivel','')}</span>
-                                    <span style="background:#EFF6FF;color:#2563EB;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">⏱️ {a.get('duracion','')}</span>
-                                    {precio_act}
-                                </div>
-                                <div style="font-size:12px;color:#374151;line-height:1.65;">{a.get('descripcion','')}</div>
-                            </div>""", unsafe_allow_html=True)
-
-                # Si es guía básica
-                if not hoteles and not restaurantes and not sitios:
-                    st.markdown(f"""<div style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border:1.5px solid #C4B5FD;
-                        border-radius:18px;padding:22px;text-align:center;">
-                        <div style="font-size:36px;margin-bottom:12px;">🗺️</div>
-                        <div style="font-size:15px;font-weight:800;color:#5B21B6;margin-bottom:8px;">Guía en construcción para {vr['dep']}</div>
-                        <div style="font-size:13px;color:#6B7280;line-height:1.7;margin-bottom:16px;">
-                            Próximamente información detallada de hoteles, restaurantes y sitios turísticos.<br>
-                            Por ahora consulta la pestaña de <strong>Consejos de Seguridad</strong>.
+                    st.markdown("### 🎯 Actividades")
+                    for a in actividades:
+                        st.markdown(f"""
+                        <div style="background:#F5F3FF;border:1px solid #DDD6FE;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#6D28D9;">{a.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#7C3AED;margin-bottom:8px;">
+                                {a.get('duracion','')} · {a.get('precio_aprox','')}
+                            </div>
+                            <div style="font-size:14px;color:#5B21B6;">
+                                {a.get('descripcion','')}
+                            </div>
                         </div>
-                        {"".join([f'<div style="font-size:12px;color:#374151;margin-bottom:8px;text-align:left;background:#fff;border-radius:10px;padding:8px 14px;">• {c}</div>' for c in guia.get("consejos",[])])}
-                    </div>""", unsafe_allow_html=True)
+                        """, unsafe_allow_html=True)
+
 # ── EMERGENCIAS ────────────────────────────────────────────────────────────────
 elif "🚨" in page:
     st.markdown("""
