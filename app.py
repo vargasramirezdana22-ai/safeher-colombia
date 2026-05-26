@@ -13,7 +13,7 @@ import plotly.graph_objects as go
 from streamlit_js_eval import get_geolocation
 import requests
 import numpy as np
-from guias_colombia_manejable import obtener_guia
+
 
 # ─── CARGAR MODELOS PKL ───────────────────────────────────────────────────────
 
