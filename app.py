@@ -1665,7 +1665,7 @@ elif "✈️" in page:
                 for i in range(5)
             ])
 
-            # ── FIX: sin condicional f-string problemático ────────────────────
+            # ── FIX: sin condicional problemático ────────────────────────────
             st.markdown(f"""<div style="background:{safety['bg']};border:2px solid {safety['color']}30;
                 border-radius:24px;padding:24px 32px;margin-bottom:24px;display:flex;align-items:center;gap:24px;
                 box-shadow:0 4px 20px {safety['color']}18;">
@@ -1708,7 +1708,6 @@ elif "✈️" in page:
                         <div style="font-size:13px;font-weight:800;color:{color};line-height:1.3;">{val}</div>
                     </div>""", unsafe_allow_html=True)
 
-            # ── TABS: se agrega la nueva pestaña de Guía Turística ────────────
             tab_muns, tab_graficas, tab_consejos, tab_guia = st.tabs([
                 "🏙️ Municipios del Departamento",
                 "📊 Análisis Visual de Riesgo",
@@ -1983,189 +1982,130 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                     </div>
                 </div>""", unsafe_allow_html=True)
 
-            # ── Tab 4: GUÍA TURÍSTICA — nueva, con IA ────────────────────────
+            # ── Tab 4: GUÍA TURÍSTICA — diccionario externo seguro ──────────────────
             with tab_guia:
-                import json as _json2
+                import os
+                import importlib.util
 
-                st.markdown(f"""<div style="background:linear-gradient(135deg,#1E1B4B,#312E81,#4C1D95);
-                    border-radius:20px;padding:22px 28px;margin-bottom:24px;color:#fff;">
-                    <div style="font-size:11px;color:#A7F3D0;font-weight:700;letter-spacing:1.5px;
-                        text-transform:uppercase;margin-bottom:8px;">🗺️ Guía de Viaje</div>
-                    <div style="font-size:22px;font-weight:900;margin-bottom:4px;">{vr['dep']}, Colombia</div>
-                    <div style="font-size:13px;color:#C4B5FD;">Hoteles · Restaurantes · Turismo · Actividades</div>
-                </div>""", unsafe_allow_html=True)
+                def guia_basica_local(dep, muni):
+                    return {
+                        "categoria": "Guía básica",
+                        "hoteles": [],
+                        "restaurantes": [],
+                        "sitios_turisticos": [],
+                        "actividades": [],
+                        "dato_curioso": f"{muni} es un destino turístico de {dep}.",
+                        "mejor_epoca": "Temporada seca."
+                    }
 
-                guia_key = f"guia_{vr['dep']}"
+                def cargar_guia_local():
+                    try:
+                        ruta_guias = os.path.join(os.path.dirname(__file__), "guias_colombia_manejable.py")
 
-                if guia_key not in st.session_state:
-                    with st.spinner(f"🌐 Buscando información actualizada de {vr['dep']}..."):
-                        guia_raw = call_claude(
-                            """Eres experta en turismo colombiano. Devuelve EXACTAMENTE este JSON (sin markdown, sin texto extra):
-{
-  "hoteles": [
-    {"nombre": "nombre real", "tipo": "Hotel/Hostal/Glamping/Lodge", "precio": "$ / $$ / $$$", "descripcion": "descripcion con zona real y precio aproximado en COP", "seguridad": "nota de seguridad para mujeres", "booking": "Booking.com / Airbnb / contacto directo"},
-    {"nombre": "...", "tipo": "...", "precio": "...", "descripcion": "...", "seguridad": "...", "booking": "..."},
-    {"nombre": "...", "tipo": "...", "precio": "...", "descripcion": "...", "seguridad": "...", "booking": "..."},
-    {"nombre": "...", "tipo": "...", "precio": "...", "descripcion": "...", "seguridad": "...", "booking": "..."}
-  ],
-  "restaurantes": [
-    {"nombre": "nombre real", "tipo": "Tipo de cocina", "especialidad": "plato estrella tipico", "zona": "barrio o zona exacta", "precio": "$ / $$ / $$$", "horario": "horario aproximado"},
-    {"nombre": "...", "tipo": "...", "especialidad": "...", "zona": "...", "precio": "...", "horario": "..."},
-    {"nombre": "...", "tipo": "...", "especialidad": "...", "zona": "...", "precio": "...", "horario": "..."},
-    {"nombre": "...", "tipo": "...", "especialidad": "...", "zona": "...", "precio": "...", "horario": "..."}
-  ],
-  "sitios_turisticos": [
-    {"nombre": "nombre real", "tipo": "Naturaleza/Cultural/Histórico/Aventura", "descripcion": "descripcion detallada y como llegar", "consejo": "consejo practico", "entrada": "precio en COP o Gratuito"},
-    {"nombre": "...", "tipo": "...", "descripcion": "...", "consejo": "...", "entrada": "..."},
-    {"nombre": "...", "tipo": "...", "descripcion": "...", "consejo": "...", "entrada": "..."},
-    {"nombre": "...", "tipo": "...", "descripcion": "...", "consejo": "...", "entrada": "..."},
-    {"nombre": "...", "tipo": "...", "descripcion": "...", "consejo": "...", "entrada": "..."}
-  ],
-  "actividades": [
-    {"nombre": "actividad real", "nivel": "Fácil/Moderado/Difícil", "duracion": "tiempo aproximado", "descripcion": "donde hacerla y operadores turisticos", "precio_aprox": "costo en COP"},
-    {"nombre": "...", "nivel": "...", "duracion": "...", "descripcion": "...", "precio_aprox": "..."},
-    {"nombre": "...", "nivel": "...", "duracion": "...", "descripcion": "...", "precio_aprox": "..."},
-    {"nombre": "...", "nivel": "...", "duracion": "...", "descripcion": "...", "precio_aprox": "..."}
-  ],
-  "dato_curioso": "dato curioso verificado sobre el departamento",
-  "mejor_epoca": "mejor epoca para visitar con meses exactos, clima y eventos reales"
-}
-CRITICO: Nombres REALES y conocidos. Precios en COP. Muy especifico con zonas y barrios.""",
-                            f"Guia turistica completa para {vr['dep']}, Colombia. Municipios: {', '.join(vr['muns'][:5])}. Para mujeres viajeras."
-                        )
-                        try:
-                            clean2 = guia_raw.strip().replace("```json","").replace("```","").strip()
-                            guia_dict = _json2.loads(clean2)
-                        except Exception:
-                            guia_dict = None
-                        st.session_state[guia_key] = guia_dict
+                        if not os.path.exists(ruta_guias):
+                            return guia_basica_local
 
-                guia = st.session_state.get(guia_key)
+                        spec = importlib.util.spec_from_file_location("guias_colombia_manejable", ruta_guias)
+                        modulo = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(modulo)
 
-                if not guia:
-                    st.warning("No se pudo cargar la guía. Intenta regenerar.")
-                    if st.button("🔄 Regenerar", key="regen_guia_err"):
-                        st.session_state.pop(guia_key, None)
-                        st.rerun()
-                else:
-                    # Dato curioso y mejor época
-                    col_dc, col_me = st.columns(2)
-                    with col_dc:
-                        st.markdown(f"""<div style="background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border:1.5px solid #FED7AA;
-                            border-radius:16px;padding:16px 18px;margin-bottom:20px;">
-                            <div style="font-size:13px;font-weight:800;color:#C2410C;margin-bottom:8px;">💡 Dato Curioso</div>
-                            <div style="font-size:13px;color:#7C2D12;line-height:1.7;">{guia.get('dato_curioso','')}</div>
-                        </div>""", unsafe_allow_html=True)
-                    with col_me:
-                        st.markdown(f"""<div style="background:linear-gradient(135deg,#ECFDF5,#D1FAE5);border:1.5px solid #6EE7B7;
-                            border-radius:16px;padding:16px 18px;margin-bottom:20px;">
-                            <div style="font-size:13px;font-weight:800;color:#065F46;margin-bottom:8px;">📅 Mejor Época para Visitar</div>
-                            <div style="font-size:13px;color:#064E3B;line-height:1.7;">{guia.get('mejor_epoca','')}</div>
-                        </div>""", unsafe_allow_html=True)
+                        return modulo.obtener_guia
 
-                    # Hoteles
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin-bottom:14px;letter-spacing:-0.3px;">🏨 Alojamientos Recomendados</div>', unsafe_allow_html=True)
-                    precio_color = {"$": "#059669", "$$": "#D97706", "$$$": "#7C3AED"}
-                    cols_h = st.columns(2)
-                    for i, h in enumerate(guia.get("hoteles", [])):
-                        with cols_h[i % 2]:
-                            pc = precio_color.get(h.get("precio","$$"), "#6B7280")
-                            booking_html = f'<div style="background:#EFF6FF;color:#2563EB;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">🌐 {h.get("booking","")}</div>' if h.get('booking') and h.get('booking') not in ['No disponible',''] else ''
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                border-top:4px solid #7C3AED;">
-                                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
-                                    <div style="font-size:14px;font-weight:800;color:#1E1B4B;line-height:1.3;flex:1;">{h.get('nombre','')}</div>
-                                    <span style="background:{pc}18;color:{pc};font-size:12px;font-weight:800;
-                                        padding:3px 10px;border-radius:20px;flex-shrink:0;margin-left:8px;">{h.get('precio','')}</span>
-                                </div>
-                                <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
-                                    <div style="background:#F5F3FF;color:#5B21B6;font-size:10px;font-weight:700;
-                                        padding:3px 10px;border-radius:20px;">{h.get('tipo','')}</div>
-                                    {booking_html}
-                                </div>
-                                <div style="font-size:12px;color:#374151;line-height:1.65;margin-bottom:10px;">{h.get('descripcion','')}</div>
-                                <div style="background:#ECFDF5;border-radius:10px;padding:8px 12px;display:flex;gap:8px;align-items:flex-start;">
-                                    <span style="font-size:14px;">🛡️</span>
-                                    <span style="font-size:11px;color:#065F46;line-height:1.5;">{h.get('seguridad','')}</span>
-                                </div>
-                            </div>""", unsafe_allow_html=True)
+                    except Exception:
+                        return guia_basica_local
 
-                    # Restaurantes
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin:8px 0 14px;letter-spacing:-0.3px;">🍽️ Restaurantes Recomendados</div>', unsafe_allow_html=True)
-                    cols_r = st.columns(2)
-                    for i, r in enumerate(guia.get("restaurantes", [])):
-                        with cols_r[i % 2]:
-                            pc2 = precio_color.get(r.get("precio","$$"), "#6B7280")
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                border-top:4px solid #EC4899;">
-                                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
-                                    <div style="font-size:14px;font-weight:800;color:#1E1B4B;line-height:1.3;flex:1;">{r.get('nombre','')}</div>
-                                    <span style="background:{pc2}18;color:{pc2};font-size:12px;font-weight:800;
-                                        padding:3px 10px;border-radius:20px;flex-shrink:0;margin-left:8px;">{r.get('precio','')}</span>
-                                </div>
-                                <div style="background:#FFF0F6;color:#BE185D;font-size:10px;font-weight:700;
-                                    padding:3px 10px;border-radius:20px;display:inline-block;margin-bottom:10px;">{r.get('tipo','')}</div>
-                                <div style="font-size:13px;color:#374151;margin-bottom:8px;">⭐ <strong>{r.get('especialidad','')}</strong></div>
-                                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
-                                    <span style="font-size:11px;color:#A78BFA;">📍 {r.get('zona','')}</span>
-                                    <span style="font-size:11px;color:#6B7280;">🕐 {r.get('horario','')}</span>
-                                </div>
-                            </div>""", unsafe_allow_html=True)
+                obtener_guia_local = cargar_guia_local()
 
-                    # Sitios turísticos
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin:8px 0 14px;letter-spacing:-0.3px;">🏛️ Sitios Turísticos</div>', unsafe_allow_html=True)
-                    tipo_color = {"Naturaleza":"#059669","Cultural":"#7C3AED","Histórico":"#D97706","Aventura":"#DC2626"}
-                    tipo_emoji = {"Naturaleza":"🌿","Cultural":"🎭","Histórico":"🏛️","Aventura":"🧗"}
-                    cols_s = st.columns(2)
-                    for i, s in enumerate(guia.get("sitios_turisticos", [])):
-                        tc = tipo_color.get(s.get("tipo","Cultural"), "#2563EB")
-                        te = tipo_emoji.get(s.get("tipo","Cultural"), "📍")
-                        with cols_s[i % 2]:
-                            entrada_html = f'<div style="background:#F5F3FF;color:#5B21B6;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;">🎟️ {s.get("entrada","")}</div>' if s.get('entrada') else ''
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                display:flex;gap:14px;border-left:5px solid {tc};">
-                                <div style="width:48px;height:48px;background:{tc}15;border-radius:14px;
-                                    display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">{te}</div>
-                                <div style="flex:1;">
-                                    <div style="font-size:14px;font-weight:800;color:#1E1B4B;margin-bottom:4px;">{s.get('nombre','')}</div>
-                                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-                                        <div style="background:{tc}18;color:{tc};font-size:9px;font-weight:700;
-                                            padding:2px 8px;border-radius:20px;">{s.get('tipo','')}</div>
-                                        {entrada_html}
-                                    </div>
-                                    <div style="font-size:12px;color:#374151;line-height:1.6;margin-bottom:8px;">{s.get('descripcion','')}</div>
-                                    <div style="background:#F5F3FF;border-radius:8px;padding:7px 10px;font-size:11px;color:#5B21B6;">
-                                        💡 {s.get('consejo','')}
-                                    </div>
-                                </div>
-                            </div>""", unsafe_allow_html=True)
+                guia = obtener_guia_local(
+                    vr["dep"],
+                    vr.get("mun_sel") or vr["dep"]
+                )
 
-                    # Actividades
-                    st.markdown('<div style="font-size:16px;font-weight:900;color:#1E1B4B;margin:8px 0 14px;letter-spacing:-0.3px;">🎯 Actividades Recomendadas</div>', unsafe_allow_html=True)
-                    nivel_color = {"Fácil":"#059669","Moderado":"#D97706","Difícil":"#DC2626"}
-                    cols_a = st.columns(2)
-                    for i, a in enumerate(guia.get("actividades", [])):
-                        nc = nivel_color.get(a.get("nivel","Fácil"), "#6B7280")
-                        with cols_a[i % 2]:
-                            precio_act = f'<span style="background:#FFFBEB;color:#D97706;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">💰 {a.get("precio_aprox","")}</span>' if a.get('precio_aprox') else ''
-                            st.markdown(f"""<div style="background:#fff;border:1px solid #EDE9FE;border-radius:18px;
-                                padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(109,40,217,0.07);
-                                border-top:4px solid {nc};">
-                                <div style="font-size:14px;font-weight:800;color:#1E1B4B;margin-bottom:10px;">{a.get('nombre','')}</div>
-                                <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-                                    <span style="background:{nc}18;color:{nc};font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">{a.get('nivel','')}</span>
-                                    <span style="background:#EFF6FF;color:#2563EB;font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;">⏱️ {a.get('duracion','')}</span>
-                                    {precio_act}
-                                </div>
-                                <div style="font-size:12px;color:#374151;line-height:1.65;">{a.get('descripcion','')}</div>
-                            </div>""", unsafe_allow_html=True)
+                
+                st.markdown(f"""
+                <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:22px;
+                    padding:22px;margin-top:10px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:11px;font-weight:800;color:#6366F1;text-transform:uppercase;">
+                                {guia.get("categoria","Guía turística")}
+                            </div>
+                            <div style="font-size:28px;font-weight:900;color:#111827;">
+                                🗺️ {vr["dep"]}{f" · {vr['mun_sel']}" if vr.get("mun_sel") else ""}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
 
-                    if st.button("🔄 Regenerar Guía Turística", key="regen_guia"):
-                        st.session_state.pop(guia_key, None)
-                        st.rerun()
+                if guia.get("dato_curioso"):
+                    st.info(f"💡 {guia['dato_curioso']}")
+
+                if guia.get("mejor_epoca"):
+                    st.success(f"📅 Mejor época para viajar: {guia['mejor_epoca']}")
+
+                hoteles = guia.get("hoteles", [])
+                if hoteles:
+                    st.markdown("### 🏨 Hoteles recomendados")
+                    for h in hoteles:
+                        st.markdown(f"""
+                        <div style="background:#F9FAFB;border:1px solid #E5E7EB;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#111827;">{h.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#6B7280;margin-bottom:8px;">
+                                {h.get('tipo','')} · {h.get('precio','')}
+                            </div>
+                            <div style="font-size:14px;color:#374151;">{h.get('descripcion','')}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                restaurantes = guia.get("restaurantes", [])
+                if restaurantes:
+                    st.markdown("### 🍽️ Restaurantes")
+                    for r in restaurantes:
+                        st.markdown(f"""
+                        <div style="background:#FFF7ED;border:1px solid #FED7AA;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#9A3412;">{r.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#7C2D12;margin-bottom:8px;">
+                                {r.get('tipo','')} · {r.get('precio','')}
+                            </div>
+                            <div style="font-size:14px;color:#7C2D12;">
+                                Especialidad: {r.get('especialidad','')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                sitios = guia.get("sitios_turisticos", [])
+                if sitios:
+                    st.markdown("### 📍 Sitios turísticos")
+                    for s in sitios:
+                        st.markdown(f"""
+                        <div style="background:#EFF6FF;border:1px solid #BFDBFE;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#1D4ED8;">{s.get('nombre','')}</div>
+                            <div style="font-size:14px;color:#1E3A8A;margin-top:6px;">
+                                {s.get('descripcion','')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                actividades = guia.get("actividades", [])
+                if actividades:
+                    st.markdown("### 🎯 Actividades")
+                    for a in actividades:
+                        st.markdown(f"""
+                        <div style="background:#F5F3FF;border:1px solid #DDD6FE;
+                            border-radius:16px;padding:16px;margin-bottom:12px;">
+                            <div style="font-size:18px;font-weight:800;color:#6D28D9;">{a.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#7C3AED;margin-bottom:8px;">
+                                {a.get('duracion','')} · {a.get('precio_aprox','')}
+                            </div>
+                            <div style="font-size:14px;color:#5B21B6;">
+                                {a.get('descripcion','')}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
 # ── EMERGENCIAS ────────────────────────────────────────────────────────────────
 elif "🚨" in page:
