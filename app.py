@@ -1985,7 +1985,36 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
             # ── Tab 4: GUÍA TURÍSTICA — diccionario estático ──────────────────
             with tab_guia:
 
-                guia = obtener_guia(vr["dep"], vr.get("mun_sel") or vr["dep"])
+                try:
+                    from guias_colombia_manejable import obtener_guia
+                except Exception:
+
+                     def obtener_guia(dep, muni):
+                         return {
+                             "categoria": "Viaje seguro",
+                             "hoteles": [],
+                             "restaurantes": [],
+                             "sitios_turisticos": [],
+                             "actividades": [],
+                             "dato_curioso": f"{muni} es un destino turístico de {dep}.",
+                             "mejor_epoca": "Temporada seca."
+                             }
+
+                try:
+                     guia = obtener_guia(
+                         vr.get("dep", "Colombia"),
+                         vr.get("mun_sel") or vr.get("dep", "Colombia")
+                         )
+                except Exception:
+                    guia = {
+                        "categoria": "Viaje seguro",
+                        "hoteles": [],
+                        "restaurantes": [],
+                        "sitios_turisticos": [],
+                        "actividades": [],
+                        "dato_curioso": "Información turística no disponible.",
+                        "mejor_epoca": "Todo el año."
+                        }
 
                 st.markdown(f"""
                 <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:22px;
