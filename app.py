@@ -1985,6 +1985,7 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
             # ── Tab 4: GUÍA TURÍSTICA — diccionario externo seguro ──────────────────
             with tab_guia:
                 import os
+                import sys
                 import importlib.util
 
                 def guia_basica_local(dep, muni):
@@ -1999,20 +2000,70 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                     }
 
                 def cargar_guia_local():
+                    """
+                    Carga guias_colombia_manejable.py SOLO dentro de Viaje Seguro.
+                    Busca el archivo en la misma carpeta de app.py y también en el directorio actual.
+                    """
+                    posibles_rutas = []
+
                     try:
-                        ruta_guias = os.path.join(os.path.dirname(__file__), "guias_colombia_manejable.py")
-
-                        if not os.path.exists(ruta_guias):
-                            return guia_basica_local
-
-                        spec = importlib.util.spec_from_file_location("guias_colombia_manejable", ruta_guias)
-                        modulo = importlib.util.module_from_spec(spec)
-                        spec.loader.exec_module(modulo)
-
-                        return modulo.obtener_guia
-
+                        posibles_rutas.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "guias_colombia_manejable.py"))
                     except Exception:
-                        return guia_basica_local
+                        pass
+
+                    posibles_rutas.append(os.path.join(os.getcwd(), "guias_colombia_manejable.py"))
+                    posibles_rutas.append("guias_colombia_manejable.py")
+
+                    # 1) Intento normal por import, agregando carpetas al path
+                    try:
+                        for ruta in posibles_rutas:
+                            carpeta = os.path.dirname(os.path.abspath(ruta))
+                            if carpeta and carpeta not in sys.path:
+                                sys.path.insert(0, carpeta)
+
+                        import guias_colombia_manejable as guias
+
+                        if hasattr(guias, "obtener_guia"):
+                            return guias.obtener_guia
+
+                    except Exception as e_import:
+                        error_import = str(e_import)
+                    else:
+                        error_import = ""
+
+                    # 2) Intento por ruta directa
+                    errores = []
+                    for ruta in posibles_rutas:
+                        try:
+                            if not os.path.exists(ruta):
+                                continue
+
+                            spec = importlib.util.spec_from_file_location("guias_colombia_manejable", ruta)
+                            if spec is None or spec.loader is None:
+                                continue
+
+                            modulo = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(modulo)
+
+                            if hasattr(modulo, "obtener_guia"):
+                                return modulo.obtener_guia
+
+                        except Exception as e_ruta:
+                            errores.append(f"{ruta}: {e_ruta}")
+
+                    # Si llega aquí, no pudo cargar el archivo
+                    st.warning(
+                        "No se pudo cargar guias_colombia_manejable.py. "
+                        "Revisa que esté en la misma carpeta que app.py en GitHub."
+                    )
+
+                    if error_import:
+                        st.caption(f"Detalle import: {error_import}")
+
+                    if errores:
+                        st.caption("Detalle rutas: " + " | ".join(errores[:2]))
+
+                    return guia_basica_local
 
                 obtener_guia_local = cargar_guia_local()
 
@@ -2021,7 +2072,6 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                     vr.get("mun_sel") or vr["dep"]
                 )
 
-                
                 st.markdown(f"""
                 <div style="background:#FFFFFF;border:1px solid #E5E7EB;border-radius:22px;
                     padding:22px;margin-top:10px;">
@@ -2056,6 +2106,7 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                                 {h.get('tipo','')} · {h.get('precio','')}
                             </div>
                             <div style="font-size:14px;color:#374151;">{h.get('descripcion','')}</div>
+                            {f'<div style="font-size:12px;color:#065F46;margin-top:8px;">🛡️ {h.get("seguridad","")}</div>' if h.get("seguridad") else ''}
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -2073,6 +2124,7 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                             <div style="font-size:14px;color:#7C2D12;">
                                 Especialidad: {r.get('especialidad','')}
                             </div>
+                            {f'<div style="font-size:12px;color:#9A3412;margin-top:6px;">📍 {r.get("zona","")}</div>' if r.get("zona") else ''}
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -2084,9 +2136,13 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                         <div style="background:#EFF6FF;border:1px solid #BFDBFE;
                             border-radius:16px;padding:16px;margin-bottom:12px;">
                             <div style="font-size:18px;font-weight:800;color:#1D4ED8;">{s.get('nombre','')}</div>
+                            <div style="font-size:13px;color:#1E40AF;margin-top:4px;">
+                                {s.get('tipo','')} {f"· {s.get('entrada','')}" if s.get('entrada') else ""}
+                            </div>
                             <div style="font-size:14px;color:#1E3A8A;margin-top:6px;">
                                 {s.get('descripcion','')}
                             </div>
+                            {f'<div style="font-size:12px;color:#1D4ED8;margin-top:8px;">💡 {s.get("consejo","")}</div>' if s.get("consejo") else ''}
                         </div>
                         """, unsafe_allow_html=True)
 
@@ -2099,13 +2155,22 @@ Los consejos deben ser concretos, practicos y especificos para el departamento i
                             border-radius:16px;padding:16px;margin-bottom:12px;">
                             <div style="font-size:18px;font-weight:800;color:#6D28D9;">{a.get('nombre','')}</div>
                             <div style="font-size:13px;color:#7C3AED;margin-bottom:8px;">
-                                {a.get('duracion','')} · {a.get('precio_aprox','')}
+                                {a.get('nivel','')} · {a.get('duracion','')} · {a.get('precio_aprox','')}
                             </div>
                             <div style="font-size:14px;color:#5B21B6;">
                                 {a.get('descripcion','')}
                             </div>
                         </div>
                         """, unsafe_allow_html=True)
+
+                if not hoteles and not restaurantes and not sitios and not actividades:
+                    st.markdown("""
+                    <div style="background:#FFFBEB;border:1px solid #FDE68A;border-radius:16px;
+                        padding:16px;margin-top:14px;color:#92400E;font-size:13px;">
+                        Esta ciudad todavía no tiene guía detallada en el diccionario. Se muestra una guía básica.
+                    </div>
+                    """, unsafe_allow_html=True)
+
 
 # ── EMERGENCIAS ────────────────────────────────────────────────────────────────
 elif "🚨" in page:
