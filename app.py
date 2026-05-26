@@ -2761,153 +2761,216 @@ ROL PRINCIPAL: Acompañar y orientar a mujeres que pueden estar en situaciones d
 PRINCIPIOS FUNDAMENTALES:
 - Eres cálida, empática, paciente y NUNCA juzgas
 - Siempre valida los sentimientos ANTES de dar cualquier consejo
-- Si hay peligro inmediato (golpes, secuestro, amenazas): responde en ≤3 oraciones con 🚨 Llama al 123 INMEDIATAMENTE
+- Si hay peligro inmediato: responde en máximo 3 oraciones con 🚨 Llama al 123 INMEDIATAMENTE
 - Nunca minimizas ni normalizas la violencia
 APOYO PSICOLÓGICO:
-- Ansiedad → técnica 4-7-8 (inhala 4s, retén 7s, exhala 8s)
-- Crisis → grounding 5-4-3-2-1 (5 cosas ves, 4 tocas, 3 escuchas, 2 hueles, 1 sabores)
-- Usa preguntas abiertas para entender mejor
-- Celebra pequeños pasos: "Es muy valiente que estés buscando ayuda"
+- Ansiedad → técnica 4-7-8
+- Crisis → grounding 5-4-3-2-1
 CONOCIMIENTO LEGAL:
-- Ley 1257/2008, medidas de protección, órdenes de alejamiento
-- Comisaría de Familia, Fiscalía URI 24h, Línea 155, ICBF Línea 141
-FORMATO: Español cálido y cercano, máx 200 palabras, emojis con moderación (💜🌸). Crisis inmediata: máx 3 oraciones."""
+- Ley 1257/2008
+- Comisaría de Familia
+- Fiscalía URI 24h
+- Línea 155
+- ICBF Línea 141
+FORMATO: Español cálido y cercano, máximo 200 palabras, emojis con moderación 💜🌸.
+"""
 
     if "sara_messages" not in st.session_state:
         st.session_state.sara_messages = [
-            {"role": "assistant", "content": "Hola 💜 Soy SARA, tu asistente de apoyo de SafeHer.\n\nEstoy aquí para escucharte, orientarte y acompañarte — sin juzgarte, completamente confidencial. Puedes contarme lo que estás viviendo, preguntar sobre tus derechos, buscar apoyo emocional, o simplemente desahogarte.\n\nEstoy aquí 24/7 para ti. ¿Cómo te puedo ayudar hoy? 🌸"}
+            {
+                "role": "assistant",
+                "content": (
+                    "Hola 💜 Soy SARA, tu asistente de apoyo de SafeHer.\n\n"
+                    "Estoy aquí para escucharte, orientarte y acompañarte sin juzgarte. "
+                    "¿Cómo te puedo ayudar hoy? 🌸"
+                )
+            }
         ]
 
     col_sidebar_sara, col_chat = st.columns([1, 3])
+
     with col_sidebar_sara:
-        st.markdown("""<div style="background:linear-gradient(160deg,#1E1B4B 0%,#4C1D95 55%,#7C3AED 100%);
+        st.markdown("""
+        <div style="background:linear-gradient(160deg,#1E1B4B 0%,#4C1D95 55%,#7C3AED 100%);
             border-radius:22px;padding:24px;color:#fff;text-align:center;margin-bottom:14px;
             box-shadow:0 6px 24px rgba(91,33,182,0.3);">
             <div style="width:68px;height:68px;background:rgba(255,255,255,0.14);border-radius:50%;
                 display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 12px;
                 border:2px solid rgba(255,255,255,0.24);">💜</div>
-            <div style="font-weight:900;font-size:22px;letter-spacing:-0.5px;">SARA</div>
+            <div style="font-weight:900;font-size:22px;">SARA</div>
             <div style="font-size:11px;color:#C4B5FD;margin-bottom:14px;">Asistente SafeHer · IA Empática</div>
             <div style="display:flex;align-items:center;gap:7px;justify-content:center;">
-                <div style="width:9px;height:9px;border-radius:50%;background:#4ADE80;box-shadow:0 0 10px #4ADE80;"></div>
+                <div style="width:9px;height:9px;border-radius:50%;background:#4ADE80;"></div>
                 <span style="font-size:11px;color:#A7F3D0;font-weight:600;">En línea · 24/7</span>
             </div>
-        </div>""", unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.markdown('<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:10px;">¿Cómo te sientes ahora?</div>', unsafe_allow_html=True)
-        mood_options = [("😰","Asustada"),("😢","Triste"),("😡","Enojada"),("😔","Sola"),("🙂","Bien"),("🆘","Urgente")]
+        st.markdown(
+            '<div style="font-size:13px;font-weight:700;color:#1E1B4B;margin-bottom:10px;">¿Cómo te sientes ahora?</div>',
+            unsafe_allow_html=True
+        )
+
+        mood_options = [
+            ("😰", "Asustada"),
+            ("😢", "Triste"),
+            ("😡", "Enojada"),
+            ("😔", "Sola"),
+            ("🙂", "Bien"),
+            ("🆘", "Urgente")
+        ]
+
         cols_mood = st.columns(3)
+
         for i, (emoji, label) in enumerate(mood_options):
             with cols_mood[i % 3]:
-                if st.button(f"{emoji}", key=f"mood_{label}", use_container_width=True, help=label):
+                if st.button(emoji, key=f"mood_{label}", use_container_width=True, help=label):
                     msg_content = f"Me siento {label.lower()} {emoji}"
                     st.session_state.sara_messages.append({"role": "user", "content": msg_content})
-                    with st.spinner("💜"):
-                        history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.sara_messages]
-                        reply = call_claude(SARA_SYSTEM, "", history=history)
+
+                    with st.spinner("SARA está escribiendo..."):
+                        history = [
+                            {"role": m["role"], "content": m["content"]}
+                            for m in st.session_state.sara_messages
+                        ]
+                        reply = call_groq(SARA_SYSTEM, history=history)
+
                     st.session_state.sara_messages.append({"role": "assistant", "content": reply})
                     st.rerun()
-                st.markdown(f'<div style="font-size:9px;color:#A78BFA;text-align:center;margin-top:-8px;margin-bottom:6px;">{label}</div>', unsafe_allow_html=True)
 
-        for ic, txt in [("🔒","Confidencial 100%"),("⚡","Respuesta empática"),("🧠","Técnicas de calma"),
-                        ("⚖️","Orientación legal"),("📍","Recursos cercanos"),("💬","Escucharte sin juzgar"),
-                        ("🌱","Apoyo psicológico"),("📱","Navegar la app")]:
-            st.markdown(f'<div style="display:flex;gap:9px;margin-bottom:9px;align-items:flex-start;">'
-                       f'<span style="font-size:15px;line-height:1.4;">{ic}</span>'
-                       f'<span style="font-size:11px;color:#6B7280;line-height:1.5;">{txt}</span></div>', unsafe_allow_html=True)
+                st.markdown(
+                    f'<div style="font-size:9px;color:#A78BFA;text-align:center;margin-top:-8px;margin-bottom:6px;">{label}</div>',
+                    unsafe_allow_html=True
+                )
 
-        for num, desc, sub in [("123","Policía","24/7"),("155","Línea Mujer","Gratis 24/7"),("137","Salud Mental","Apoyo")]:
-            st.markdown(f'<a href="tel:{num}" style="display:flex;justify-content:space-between;align-items:center;text-decoration:none;padding:9px 0;border-bottom:1px solid #FECDD3;">'
-                       f'<span style="font-size:18px;color:#BE123C;font-weight:900;font-family:Georgia,serif;">{num}</span>'
-                       f'<div style="text-align:right;"><div style="font-size:11px;color:#DC2626;font-weight:700;">{desc}</div>'
-                       f'<div style="font-size:9px;color:#9F1239;font-weight:500;">{sub}</div></div></a>', unsafe_allow_html=True)
+        st.markdown("""
+        <div style="font-size:12px;color:#6B7280;line-height:2;margin-top:14px;">
+            🔒 Confidencial 100%<br>
+            ⚡ Respuesta empática<br>
+            🧠 Técnicas de calma<br>
+            ⚖️ Orientación legal<br>
+            📍 Recursos cercanos<br>
+            💬 Escucharte sin juzgar
+        </div>
+        """, unsafe_allow_html=True)
 
     with col_chat:
-        st.markdown("""<div style="padding:18px 24px;border-bottom:1px solid #EDE9FE;display:flex;align-items:center;
-            gap:14px;background:linear-gradient(135deg,#1E1B4B,#4C1D95);border-radius:22px 22px 0 0;
-            box-shadow:0 4px 16px rgba(30,27,75,0.3);">
-            <div style="width:42px;height:42px;background:rgba(255,255,255,0.14);border-radius:50%;
-                display:flex;align-items:center;justify-content:center;font-size:22px;
-                box-shadow:0 2px 8px rgba(0,0,0,0.2);">💜</div>
-            <div>
-                <div style="font-weight:800;font-size:15px;color:#fff;letter-spacing:-0.3px;">SARA — Asistente SafeHer</div>
-                <div style="font-size:11px;color:#A7F3D0;display:flex;align-items:center;gap:6px;margin-top:3px;">
-                    <span style="width:7px;height:7px;border-radius:50%;background:#4ADE80;display:inline-block;box-shadow:0 0 6px #4ADE80;"></span>
-                    En línea · Siempre disponible · Completamente confidencial
-                </div>
+        st.markdown("""
+        <div style="background:linear-gradient(135deg,#1E1B4B,#4C1D95);
+            border-radius:22px 22px 0 0;padding:18px 24px;color:white;">
+            <div style="font-size:17px;font-weight:900;">SARA — Asistente SafeHer</div>
+            <div style="font-size:11px;color:#C4B5FD;margin-top:3px;">
+                🟢 En línea · Siempre disponible · Completamente confidencial
             </div>
-            <div style="margin-left:auto;display:flex;gap:8px;">
-                <a href="tel:155" style="background:rgba(255,255,255,0.1);color:#E9D5FF;padding:7px 14px;
-                    border-radius:20px;font-size:11px;text-decoration:none;font-weight:700;
-                    border:1px solid rgba(255,255,255,0.2);">📞 155</a>
-                <a href="tel:123" style="background:rgba(220,38,38,0.35);color:#FCA5A5;padding:7px 14px;
-                    border-radius:20px;font-size:11px;text-decoration:none;font-weight:700;
-                    border:1px solid rgba(220,38,38,0.4);">🚨 123</a>
-            </div>
-        </div>""", unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
         msgs_html = ""
+
         for msg in st.session_state.sara_messages:
             if msg["role"] == "user":
-                msgs_html += f"""<div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px;">
+                msgs_html += f"""
+                <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:16px;">
                     <div class="chat-user">{msg['content']}</div>
-                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);border-radius:50%;
-                        display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px;">👤</div>
-                </div>"""
+                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#EDE9FE,#DDD6FE);
+                        border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;
+                        flex-shrink:0;margin-top:2px;">👤</div>
+                </div>
+                """
             else:
-                content = msg['content'].replace('\n', '<br>')
-                msgs_html += f"""<div style="display:flex;gap:10px;margin-bottom:16px;">
-                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#1E1B4B,#7C3AED);border-radius:50%;
-                        display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;margin-top:2px;
-                        box-shadow:0 3px 10px rgba(124,58,237,0.3);">💜</div>
+                content = msg["content"].replace("\n", "<br>")
+                msgs_html += f"""
+                <div style="display:flex;gap:10px;margin-bottom:16px;">
+                    <div style="width:34px;height:34px;background:linear-gradient(135deg,#1E1B4B,#7C3AED);
+                        border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;
+                        flex-shrink:0;margin-top:2px;box-shadow:0 3px 10px rgba(124,58,237,0.3);">💜</div>
                     <div class="chat-sara">{content}</div>
-                </div>"""
+                </div>
+                """
 
-        st.markdown(f"""<div style="background:#fff;padding:24px;min-height:380px;max-height:420px;
+        st.markdown(f"""
+        <div style="background:#fff;padding:24px;min-height:380px;max-height:420px;
             border-left:1px solid #EDE9FE;border-right:1px solid #EDE9FE;overflow-y:auto;">
             {msgs_html}
-        </div>""", unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
 
-        quick_replies = ["Necesito ayuda urgente 🆘","¿Cómo denuncio?","Me siento sola y asustada",
-                         "¿Cuáles son mis derechos?","Ejercicio para calmarme 🧘","Me están amenazando",
-                         "¿Qué hace esta app?","Apoyo psicológico"]
-        qcols = st.columns(4)
-        for i, q in enumerate(quick_replies):
-            with qcols[i % 4]:
-                if st.button(q, key=f"qr_{i}", use_container_width=True):
-                    st.session_state.sara_messages.append({"role": "user", "content": q})
-                    with st.spinner("SARA está escribiendo..."):
-                        history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.sara_messages]
-                        reply = call_claude(SARA_SYSTEM, "", history=history)
-                    st.session_state.sara_messages.append({"role": "assistant", "content": reply})
-                    st.rerun()
-
+        # INPUT PRIMERO
         with st.form("sara_form", clear_on_submit=True):
             col_inp, col_send = st.columns([5, 1])
+
             with col_inp:
-                user_input = st.text_input("", placeholder="Escribe tu mensaje... Estoy aquí para escucharte 💜",
-                                           label_visibility="collapsed", key="sara_input")
+                user_input = st.text_input(
+                    "",
+                    placeholder="Escribe tu mensaje... Estoy aquí para escucharte 💜",
+                    label_visibility="collapsed",
+                    key="sara_input"
+                )
+
             with col_send:
                 send_sara = st.form_submit_button("➤ Enviar", use_container_width=True)
 
         if send_sara and user_input.strip():
-            st.session_state.sara_messages.append({"role": "user", "content": user_input.strip()})
+            st.session_state.sara_messages.append(
+                {"role": "user", "content": user_input.strip()}
+            )
+
             with st.spinner("SARA está escribiendo..."):
-                history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.sara_messages]
-                reply = call_claude(SARA_SYSTEM, "", history=history)
+                history = [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in st.session_state.sara_messages
+                ]
+                reply = call_groq(SARA_SYSTEM, history=history)
+
             st.session_state.sara_messages.append({"role": "assistant", "content": reply})
             st.rerun()
 
+        # CUADROS DE AYUDA DEBAJO DEL INPUT
+        quick_replies = [
+            "Necesito ayuda urgente 🆘",
+            "¿Cómo denuncio?",
+            "Me siento sola y asustada",
+            "¿Cuáles son mis derechos?",
+            "Ejercicio para calmarme 🧘",
+            "Me están amenazando",
+            "¿Qué hace esta app?",
+            "Apoyo psicológico"
+        ]
+
+        qcols = st.columns(4)
+
+        for i, q in enumerate(quick_replies):
+            with qcols[i % 4]:
+                if st.button(q, key=f"qr_{i}", use_container_width=True):
+                    st.session_state.sara_messages.append({"role": "user", "content": q})
+
+                    with st.spinner("SARA está escribiendo..."):
+                        history = [
+                            {"role": m["role"], "content": m["content"]}
+                            for m in st.session_state.sara_messages
+                        ]
+                        reply = call_groq(SARA_SYSTEM, history=history)
+
+                    st.session_state.sara_messages.append({"role": "assistant", "content": reply})
+                    st.rerun()
+
         col_clear, col_info_sara = st.columns([1, 2])
+
         with col_clear:
             if st.button("🔄 Nueva conversación", use_container_width=True):
                 st.session_state.sara_messages = [
-                    {"role": "assistant", "content": "Hola 💜 Soy SARA. Estoy aquí para escucharte. ¿Cómo te puedo ayudar?"}
+                    {
+                        "role": "assistant",
+                        "content": "Hola 💜 Soy SARA. Estoy aquí para escucharte. ¿Cómo te puedo ayudar?"
+                    }
                 ]
                 st.rerun()
-        with col_info_sara:
-            st.markdown('<div style="font-size:11px;color:#A78BFA;padding:8px 0;">🔒 Esta conversación es completamente confidencial y no se almacena de forma permanente.</div>', unsafe_allow_html=True)
 
+        with col_info_sara:
+            st.markdown(
+                '<div style="font-size:11px;color:#A78BFA;padding:8px 0;">🔒 Esta conversación es completamente confidencial y no se almacena de forma permanente.</div>',
+                unsafe_allow_html=True
+            )
 
 # ── AYUDA CERCANA ─────────────────────────────────────────────────────────────
 elif "🚔" in page:
