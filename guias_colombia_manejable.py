@@ -2900,3 +2900,118 @@ def obtener_guia(dep, muni):
                 return guia
 
     return guia_basica(dep, muni)
+
+
+# =========================================================
+# BOGOTÁ D.C.
+# =========================================================
+
+GUIAS["BOGOTÁ D.C."] = {
+
+    "BOGOTÁ D.C.": {
+
+        "categoria": "Guía más concurrida",
+
+        "dato_curioso":
+            "Bogotá es la capital de Colombia y una de las ciudades más altas de Sudamérica.",
+
+        "mejor_epoca":
+            "Diciembre a marzo y julio a agosto.",
+
+        "hoteles": [
+
+            {
+                "nombre": "Hotel Tequendama",
+                "tipo": "Hotel histórico",
+                "precio": "Desde $320.000 COP",
+                "descripcion":
+                    "Hotel clásico en el centro internacional de Bogotá.",
+                "seguridad":
+                    "Usar taxi o apps en la noche."
+            },
+
+            {
+                "nombre": "Grand Hyatt Bogotá",
+                "tipo": "Hotel premium",
+                "precio": "Desde $850.000 COP",
+                "descripcion":
+                    "Hotel de lujo cerca de Corferias y aeropuerto.",
+                "seguridad":
+                    "Zona moderna y segura."
+            }
+
+        ],
+
+        "restaurantes": [
+
+            {
+                "nombre": "Andrés DC",
+                "tipo": "Restaurante turístico",
+                "precio": "$60.000 - $180.000 COP",
+                "especialidad":
+                    "Comida colombiana y ambiente nocturno.",
+                "zona":
+                    "Zona T"
+            },
+
+            {
+                "nombre": "Prudencia",
+                "tipo": "Restaurante gourmet",
+                "precio": "$45.000 - $120.000 COP",
+                "especialidad":
+                    "Cocina local contemporánea.",
+                "zona":
+                    "La Candelaria"
+            }
+
+        ],
+
+        "sitios_turisticos": [
+
+            {
+                "nombre": "Monserrate",
+                "tipo": "Mirador",
+                "entrada": "$16.000 COP",
+                "descripcion":
+                    "Principal atractivo turístico con vista panorámica.",
+                "consejo":
+                    "Ir temprano y evitar domingos muy llenos."
+            },
+
+            {
+                "nombre": "Museo del Oro",
+                "tipo": "Museo",
+                "entrada": "$5.000 COP",
+                "descripcion":
+                    "Colección histórica de piezas precolombinas.",
+                "consejo":
+                    "Ideal recorrer junto a La Candelaria."
+            }
+
+        ],
+
+        "actividades": [
+
+            {
+                "nombre": "Tour por La Candelaria",
+                "nivel": "Fácil",
+                "duracion": "3 horas",
+                "precio_aprox": "$40.000 COP",
+                "descripcion":
+                    "Recorrido histórico y gastronómico."
+            },
+
+            {
+                "nombre": "Ciclovía dominical",
+                "nivel": "Fácil",
+                "duracion": "2-5 horas",
+                "precio_aprox": "Gratis",
+                "descripcion":
+                    "Actividad emblemática de Bogotá."
+            }
+
+        ]
+
+    }
+
+}
