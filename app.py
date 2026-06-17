@@ -780,6 +780,7 @@ with st.sidebar:
 
 # ── INICIO ────────────────────────────────────────────────────────────────────
 if "🏠" in page:
+    st.success("✅ App actualizada correctamente — versión 2.0")
     st.markdown("""
     <div style="background:linear-gradient(135deg,#1E1B4B 0%,#312E81 45%,#4C1D95 100%);
         border-radius:28px;padding:52px 52px;margin-bottom:32px;position:relative;overflow:hidden;color:#fff;">
